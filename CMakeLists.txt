@@ -3,7 +3,7 @@ project(lpr)
 
 #include_directories("${PROJECT_SOURCE_DIR}")
 
-set(CMAKE_CXX_FLAGS "-Ofast -g -Wall")
+set(CMAKE_CXX_FLAGS "-g -ggdb3 -Wall -Wextra -Werror -std=c++0x")
 
 SET (CMAKE_CXX_COMPILER   "/usr/bin/clang++")
 
@@ -64,6 +64,7 @@ endif(NOT OpenCV_FOUND)
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 
 add_subdirectory("${SOURCE_DIR}/main")
+add_subdirectory("${SOURCE_DIR}/algo")
 add_subdirectory("${SOURCE_DIR}/tools")
 
 

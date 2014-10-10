@@ -19,8 +19,11 @@
 #include <locale.h>
 #include <stddef.h>
 #include <cmath>
+#include <map>
+#include <list>
 #include <string.h>
 #include <stdlib.h>
 #include "../tools/Tools.h"
+
 
 #endif /* ALL_H_ */

@@ -9,6 +9,7 @@ namespace algorithm
     { "gaussian", gaussian }
     , { "grayscale", grayscale }
     , { "sobel", sobel }
+    , { "binarize", binarize }
   };
 
   void exec_all(std::list<std::string>& as, cv::Mat& img)

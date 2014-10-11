@@ -23,6 +23,12 @@ namespace algorithm
     cv::cvtColor(img, img, CV_RGB2GRAY);
   }
 
+  void binarize(cv::Mat& img)
+  {
+    cv::cvtColor(img, img, CV_RGB2GRAY);
+    cv::threshold(img, img, 97, 255, 0);
+  }
+
   void sobel(cv::Mat& img)
   {
     cv::Mat grad_x, grad_y;

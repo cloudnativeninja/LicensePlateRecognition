@@ -16,6 +16,7 @@ namespace parse
       {"sobel",     no_argument, 0, 's' },
       {"grayscale", no_argument, 0, 'g' },
       {"gaussian",  no_argument, 0, 'b' },
+      {"binarize",  no_argument, 0, 'z' },
       {0,         0,                 0,  0 }
     };
     int c;
@@ -40,6 +41,10 @@ namespace parse
 
 	case 's':
 	  opts["algorithms"].push_back("sobel");
+	  break;
+
+	case 'z':
+	  opts["algorithms"].push_back("binarize");
 	  break;
 
 	case 'b':

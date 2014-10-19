@@ -28,12 +28,12 @@ namespace algorithm
 
   void binarize(cv::Mat &img)
   {
-    cv::threshold(img, img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    cv::threshold(img, img, 128, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
   }
 
   void median(cv::Mat &img)
   {
-    cv::medianBlur(img, img, 15);
+    cv::medianBlur(img, img, 3);
   }
 
   void detect(cv::Mat &img)
@@ -81,25 +81,26 @@ namespace algorithm
 
   void swt(cv::Mat &img)
   {
-    detect(img);
     // bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
-    // cv::Mat bw32f, swt32f, kernel;
-    // double  max;
-    // int strokeRadius;
-    // cv::threshold(img, img, 97, 1, 0);
-    // img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
-    // distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
-    // minMaxLoc(swt32f, NULL, &max);  // find max
-    // strokeRadius = (int)ceil(max);  // half the max stroke width
-    // kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
+    cv::Mat bw32f, swt32f, kernel;
+    double  max;
+    int strokeRadius;
+    cv::threshold(img, img, 97, 1, 0);
+    img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
+    distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
+    minMaxLoc(swt32f, NULL, &max);  // find max
+    strokeRadius = (int)ceil(max);  // half the max stroke width
+    kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
 
-    // for (int j = 0; j < strokeRadius; j++)
-    // {
-    //   dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
-    //   swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
-    // }
-    // // swt32f : resulting SWT image
-    // img = swt32f;
+    for (int j = 0; j < strokeRadius; j++)
+    {
+      dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
+      swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
+    }
+    // swt32f : resulting SWT image
+    img = swt32f;
+    detect(img);
+
   }
 
 

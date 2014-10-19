@@ -29,7 +29,7 @@ namespace parse
     {
       int option_index = 0;
 
-      c = getopt_long(ac, av, "sgbzte",
+      c = getopt_long(ac, av, "sgbztem",
                       long_options, &option_index);
       if (c == -1)
         break;
@@ -66,6 +66,11 @@ namespace parse
         case 'g':
           opts["algorithms"].push_back("grayscale");
           break;
+
+        case 'm':
+          opts["algorithms"].push_back("median");
+          break;
+
 
         case '?':
           break;

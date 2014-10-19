@@ -7,10 +7,11 @@
 
 namespace algorithm
 {
-  void gaussian(cv::Mat& img);
-  void grayscale(cv::Mat& img);
-  void sobel(cv::Mat& img);
-  void binarize(cv::Mat& img);
+  void gaussian(cv::Mat &img);
+  void grayscale(cv::Mat &img);
+  void sobel(cv::Mat &img);
+  void binarize(cv::Mat &img);
+  void swt(cv::Mat &img);
 }
 
 #endif /* !ALGORITHM_HH_ */

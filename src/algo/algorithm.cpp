@@ -23,34 +23,85 @@ namespace algorithm
   void grayscale(cv::Mat &img)
   {
     cv::cvtColor(img, img, CV_RGB2GRAY);
+    cv::equalizeHist(img, img);
   }
 
   void binarize(cv::Mat &img)
   {
-    cv::threshold(img, img, 128, 255, cv::THRESH_OTSU);
+    cv::threshold(img, img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
   }
+
+  void median(cv::Mat &img)
+  {
+    cv::medianBlur(img, img, 15);
+  }
+
+  void detect(cv::Mat &img)
+  {
+    std::cout << "begin detect" << std::endl;
+
+    cv::threshold(img, img, 97, 1, 0);
+    cv::Mat difference(img.size(), 0);
+    std::cout << "before for 1" << std::endl;
+
+    for (int y = 0; y < img.cols; y++)
+    {
+      for (int x = 0; x < img.rows; x++)
+        difference.at<uchar>(x, y) = 0.0;
+    }
+    std::cout << "before for 2" << std::endl;
+
+    for (int y = 0; y < img.cols; y++)
+    {
+      for (int x = 0; x < img.rows; x++)
+        difference.at<uchar>(x, y) = std::abs(img.at<uchar>(x, y) - img.at<uchar>(x, y + 1));
+    }
+
+    std::cout << "before for 3" << std::endl;
+
+    std::vector<int> sum;
+    for (int x = 0; x < img.rows; x++)
+    {
+      int sumline = 0;
+      for (int y = 0; y < img.cols; y++)
+      {
+        sumline += difference.at<uchar>(x, y);
+      }
+      sum.push_back(sumline);
+    }
+    std::cout << "before for 4" << std::endl;
+
+    for (auto lol : sum)
+      std::cout << lol << std::endl;
+
+    std::cout << "end detect" << std::endl;
+
+  }
+
 
   void swt(cv::Mat &img)
   {
+    detect(img);
     // bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
-    cv::Mat bw32f, swt32f, kernel;
-    double  max;
-    int strokeRadius;
-    cv::threshold(img, img, 97, 1, 0);
-    img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
-    distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
-    minMaxLoc(swt32f, NULL, &max);  // find max
-    strokeRadius = (int)ceil(max);  // half the max stroke width
-    kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
+    // cv::Mat bw32f, swt32f, kernel;
+    // double  max;
+    // int strokeRadius;
+    // cv::threshold(img, img, 97, 1, 0);
+    // img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
+    // distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
+    // minMaxLoc(swt32f, NULL, &max);  // find max
+    // strokeRadius = (int)ceil(max);  // half the max stroke width
+    // kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
 
-    for (int j = 0; j < strokeRadius; j++)
-      {
-        dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
-        swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
-      }
-    // swt32f : resulting SWT image
-    img = swt32f;
+    // for (int j = 0; j < strokeRadius; j++)
+    // {
+    //   dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
+    //   swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
+    // }
+    // // swt32f : resulting SWT image
+    // img = swt32f;
   }
+
 
 
   void sobel(cv::Mat &img)
@@ -77,10 +128,10 @@ namespace algorithm
     double dy1 = pt1.y - pt0.y;
     double dx2 = pt2.x - pt0.x;
     double dy2 = pt2.y - pt0.y;
-    return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
+    return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
   }
 
-  void edge_detect(cv::Mat& img)
+  void edge_detect(cv::Mat &img)
   {
     cv::RNG rng(12345);
 
@@ -99,11 +150,11 @@ namespace algorithm
       // Approximate contour with accuracy proportional
       // to the contour perimeter
       cv::approxPolyDP(
-		       cv::Mat(contours[i]),
-		       approx,
-		       cv::arcLength(cv::Mat(contours[i]), true) * 0.05,
-		       true
-		       );
+        cv::Mat(contours[i]),
+        approx,
+        cv::arcLength(cv::Mat(contours[i]), true) * 0.05,
+        true
+      );
       /*      cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
       cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
       */
@@ -114,12 +165,12 @@ namespace algorithm
         int vtc = approx.size();
 
         // Get the degree (in cosines) of all corners
-	std::vector<double> cos;
-        for (int j = 2; j < vtc+1; j++)
-	  cos.push_back(angle(approx[j%vtc], approx[j-2], approx[j-1]));
+        std::vector<double> cos;
+        for (int j = 2; j < vtc + 1; j++)
+          cos.push_back(angle(approx[j % vtc], approx[j - 2], approx[j - 1]));
 
         // Sort ascending the corner degree values
-	std::sort(cos.begin(), cos.end());
+        std::sort(cos.begin(), cos.end());
 
         // Get the lowest and the highest degree
         double mincos = cos.front();
@@ -129,12 +180,12 @@ namespace algorithm
         // to determine the shape of the contour
         if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3)
         {
-	  // Detect rectangle or square
-	  cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-	  cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
+          // Detect rectangle or square
+          cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255) );
+          cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
         }
       }
-      } // end of for() loop
+    } // end of for() loop
     /*
     std::vector<cv::Vec2f> vecs;
     std::vector<line> lines;
@@ -153,9 +204,9 @@ namespace algorithm
 
     for (size_t i = 0; i < lines.size(); i++)
       for (size_t j = 0; j < lines.size(); j++)
-	if (i != j && lines[i].is_horizontal() && lines[j].is_horizontal()
-	    && lines[i].is_parallel(lines[j]))
-	  parallels.push_back(std::pair<line, line>(lines[i], lines[j]));
+    if (i != j && lines[i].is_horizontal() && lines[j].is_horizontal()
+      && lines[i].is_parallel(lines[j]))
+    parallels.push_back(std::pair<line, line>(lines[i], lines[j]));
 
     std::cout << parallels.size() << std::endl;
     for (size_t i = 0; i < parallels.size(); i++)

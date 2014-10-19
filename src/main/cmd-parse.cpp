@@ -19,69 +19,70 @@ namespace parse
       {"binarize",  no_argument, 0, 'z' },
       {"edged",  no_argument, 0, 'e' },
       {"swt",  no_argument, 0, 't' },
+      {"median",  no_argument, 0, 'm' },
       {0,         0,                 0,  0 }
     };
     int c;
     opts["algorithms"] = std::list<std::string>();
 
     for (;;)
-      {
-        int option_index = 0;
+    {
+      int option_index = 0;
 
-        c = getopt_long(ac, av, "sgbzt",
-                        long_options, &option_index);
-        if (c == -1)
+      c = getopt_long(ac, av, "sgbzte",
+                      long_options, &option_index);
+      if (c == -1)
+        break;
+
+      switch (c)
+      {
+        case 0:
+          printf("option %s", long_options[option_index].name);
+          if (optarg)
+            printf(" with arg %s", optarg);
+          printf("\n");
           break;
 
-        switch (c)
-          {
-            case 0:
-              printf("option %s", long_options[option_index].name);
-              if (optarg)
-                printf(" with arg %s", optarg);
-              printf("\n");
-              break;
+        case 's':
+          opts["algorithms"].push_back("sobel");
+          break;
 
-            case 's':
-              opts["algorithms"].push_back("sobel");
-              break;
+        case 'e':
+          opts["algorithms"].push_back("edge_detect");
+          break;
 
-	    case 'e':
-	      opts["algorithms"].push_back("edge_detect");
-	      break;
+        case 't':
+          opts["algorithms"].push_back("swt");
+          break;
 
-            case 't':
-              opts["algorithms"].push_back("swt");
-              break;
+        case 'z':
+          opts["algorithms"].push_back("binarize");
+          break;
 
-            case 'z':
-              opts["algorithms"].push_back("binarize");
-              break;
+        case 'b':
+          opts["algorithms"].push_back("gaussian");
+          break;
 
-            case 'b':
-              opts["algorithms"].push_back("gaussian");
-              break;
+        case 'g':
+          opts["algorithms"].push_back("grayscale");
+          break;
 
-            case 'g':
-              opts["algorithms"].push_back("grayscale");
-              break;
+        case '?':
+          break;
 
-            case '?':
-              break;
-
-            default:
-              printf("?? getopt returned character code 0%o ??\n", c);
-          }
+        default:
+          printf("?? getopt returned character code 0%o ??\n", c);
       }
+    }
 
     if (optind < ac)
-      {
-        opts["img"] = std::list<std::string>();
-        while (optind < ac)
-          opts["img"].push_back(av[optind++]);
+    {
+      opts["img"] = std::list<std::string>();
+      while (optind < ac)
+        opts["img"].push_back(av[optind++]);
 
-        printf("\n");
-      }
+      printf("\n");
+    }
     else
       exit(1);
   }

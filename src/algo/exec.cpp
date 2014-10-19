@@ -13,16 +13,17 @@ namespace algorithm
     { "sobel", sobel },
     { "binarize", binarize },
     { "swt", swt },
+    {"median", median },
     { "edge_detect", edge_detect}
   };
 
   void exec_all(std::list<std::string> &as, cv::Mat &img)
   {
     for (std::string &a : as)
-      {
-        funcs[a](img);
-        Tools::showImage(img, a);
-      }
+    {
+      funcs[a](img);
+      Tools::showImage(img, a);
+    }
 
   }
 }

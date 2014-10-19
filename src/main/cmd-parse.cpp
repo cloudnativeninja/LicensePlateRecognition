@@ -17,6 +17,7 @@ namespace parse
       {"grayscale", no_argument, 0, 'g' },
       {"gaussian",  no_argument, 0, 'b' },
       {"binarize",  no_argument, 0, 'z' },
+      {"edged",  no_argument, 0, 'e' },
       {0,         0,                 0,  0 }
     };
     int c;
@@ -41,6 +42,10 @@ namespace parse
 
 	case 's':
 	  opts["algorithms"].push_back("sobel");
+	  break;
+
+	case 'e':
+	  opts["algorithms"].push_back("edge_detect");
 	  break;
 
 	case 'z':

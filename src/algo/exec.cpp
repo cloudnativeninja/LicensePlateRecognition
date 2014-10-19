@@ -10,6 +10,7 @@ namespace algorithm
     , { "grayscale", grayscale }
     , { "sobel", sobel }
     , { "binarize", binarize }
+    , { "edge_detect", edge_detect}
   };
 
   void exec_all(std::list<std::string>& as, cv::Mat& img)

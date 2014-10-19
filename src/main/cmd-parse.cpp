@@ -15,11 +15,12 @@ namespace parse
     {
       {"sobel",     no_argument, 0, 's' },
       {"grayscale", no_argument, 0, 'g' },
-      {"gaussian",  no_argument, 0, 'b' },
-      {"binarize",  no_argument, 0, 'z' },
+      {"blur",  no_argument, 0, 'b' },
+      {"otsu",  no_argument, 0, 'o' },
       {"edged",  no_argument, 0, 'e' },
       {"swt",  no_argument, 0, 't' },
       {"median",  no_argument, 0, 'm' },
+      {"morph",  no_argument, 0, 'p' },
       {0,         0,                 0,  0 }
     };
     int c;
@@ -29,7 +30,7 @@ namespace parse
     {
       int option_index = 0;
 
-      c = getopt_long(ac, av, "sgbztem",
+      c = getopt_long(ac, av, "sgbotemp",
                       long_options, &option_index);
       if (c == -1)
         break;
@@ -55,13 +56,18 @@ namespace parse
           opts["algorithms"].push_back("swt");
           break;
 
-        case 'z':
-          opts["algorithms"].push_back("binarize");
+        case 'o':
+          opts["algorithms"].push_back("otsu");
           break;
 
         case 'b':
-          opts["algorithms"].push_back("gaussian");
+          opts["algorithms"].push_back("blur");
           break;
+
+        case 'p':
+          opts["algorithms"].push_back("morph");
+          break;
+
 
         case 'g':
           opts["algorithms"].push_back("grayscale");

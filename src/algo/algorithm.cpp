@@ -15,7 +15,7 @@
 
 namespace algorithm
 {
-  void gaussian(cv::Mat &img)
+  void blurgaussian(cv::Mat &img)
   {
     cv::GaussianBlur(img, img, cv::Size(3, 3), 0, 0, cv::BORDER_DEFAULT);
   }
@@ -26,7 +26,22 @@ namespace algorithm
     cv::equalizeHist(img, img);
   }
 
-  void binarize(cv::Mat &img)
+  // Morphological Transforms
+  void morph(cv::Mat &img)
+  {
+    int morph_elem = 0; //Element:\n 0: Rect - 1: Cross - 2: Ellipse
+    int morph_size = 21; // Kernel size:\n 2n +1 (max 21)
+    int morph_operator = 3; //Operator:\n 0: Opening - 1: Closing \n 2: Gradient - 3: Top Hat \n 4: Black Hat
+
+    int operation = morph_operator + 2;
+    cv::Mat element = getStructuringElement(morph_elem,
+                                            cv::Size(2 * morph_size + 1, 2 * morph_size + 1),
+                                            cv::Point(morph_size, morph_size));
+    cv::morphologyEx(img, img, operation, element);
+  }
+
+
+  void otsu(cv::Mat &img)
   {
     cv::threshold(img, img, 128, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
   }
@@ -81,6 +96,7 @@ namespace algorithm
 
   void swt(cv::Mat &img)
   {
+    // stroke width transform
     // bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
     cv::Mat bw32f, swt32f, kernel;
     double  max;
@@ -100,7 +116,6 @@ namespace algorithm
     // swt32f : resulting SWT image
     img = swt32f;
     detect(img);
-
   }
 
 

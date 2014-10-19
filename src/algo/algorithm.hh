@@ -8,13 +8,13 @@
 namespace algorithm
 {
   void edge_detect(cv::Mat &img);
-  void gaussian(cv::Mat &img);
+  void blurgaussian(cv::Mat &img);
   void grayscale(cv::Mat &img);
   void sobel(cv::Mat &img);
-  void binarize(cv::Mat &img);
+  void otsu(cv::Mat &img);
   void swt(cv::Mat &img);
   void median(cv::Mat &img);
-
+  void morph(cv::Mat &img);
 }
 
 #endif /* !ALGORITHM_HH_ */

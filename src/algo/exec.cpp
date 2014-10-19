@@ -8,12 +8,13 @@ namespace algorithm
 {
   static std::map<std::string, std::function<void(cv::Mat &)>> funcs =
   {
-    { "gaussian", gaussian },
+    { "blur", blurgaussian },
     { "grayscale", grayscale },
     { "sobel", sobel },
-    { "binarize", binarize },
+    { "ostu", otsu },
     { "swt", swt },
     {"median", median },
+    {"morph", morph },
     { "edge_detect", edge_detect}
   };
 

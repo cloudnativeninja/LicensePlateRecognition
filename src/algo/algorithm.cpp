@@ -71,7 +71,7 @@ namespace algorithm
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, img);
   }
 
-  /*  static double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
+  static double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
   {
     double dx1 = pt1.x - pt0.x;
     double dy1 = pt1.y - pt0.y;
@@ -79,10 +79,10 @@ namespace algorithm
     double dy2 = pt2.y - pt0.y;
     return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
   }
-  */
+
   void edge_detect(cv::Mat& img)
   {
-    /*    cv::RNG rng(12345);
+    cv::RNG rng(12345);
 
     std::vector<std::vector<cv::Point> > contours;
     //    cv::Canny(img, img, 100, 200, 3);
@@ -104,9 +104,9 @@ namespace algorithm
 		       cv::arcLength(cv::Mat(contours[i]), true) * 0.05,
 		       true
 		       );
-      cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+      /*      cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
       cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
-
+      */
       // Skip small or non-convex objects
       if (approx.size() == 4)
       {
@@ -135,7 +135,7 @@ namespace algorithm
         }
       }
       } // end of for() loop
-*/
+    /*
     std::vector<cv::Vec2f> vecs;
     std::vector<line> lines;
     std::vector<std::pair<line, line>> parallels;
@@ -163,7 +163,7 @@ namespace algorithm
       parallels[i].first.draw(dst);
       parallels[i].second.draw(dst);
     }
-
+    */
     img = dst;
   }
 }

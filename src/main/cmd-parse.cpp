@@ -50,10 +50,6 @@ namespace parse
 	      opts["algorithms"].push_back("edge_detect");
 	      break;
 
-	    case 'z':
-	      opts["algorithms"].push_back("binarize");
-	      break;
-
             case 't':
               opts["algorithms"].push_back("swt");
               break;

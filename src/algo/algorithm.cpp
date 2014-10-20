@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 
+#include "../tools/Tools.h"
 #include "line.hh"
 
 namespace algorithm
@@ -23,7 +24,7 @@ namespace algorithm
   void grayscale(cv::Mat &img)
   {
     cv::cvtColor(img, img, CV_RGB2GRAY);
-    cv::equalizeHist(img, img);
+    // cv::equalizeHist(img, img);
   }
 
   // Morphological Transforms
@@ -51,45 +52,68 @@ namespace algorithm
     cv::medianBlur(img, img, 3);
   }
 
+  void verticalEdgeDetection(const cv::Mat &src, cv::Mat &dst)
+  {
+    for (int y = 0; y < src.rows; y++)
+    {
+      for (int x = 0; x < src.cols; x++)
+        dst.at<uchar>(y, x) = 0.0;
+    }
+
+    for (int y = 1; y < src.rows - 1; y++)
+    {
+      for (int x = 1; x < src.cols - 1; x++)
+      {
+        int v = Tools::convolutionYDetection(src, x, y);
+        int sum = abs(v);
+        sum = sum > 255 ? 255 : sum;
+        sum = sum < 0 ? 0 : sum;
+        dst.at<uchar>(y, x) = sum;
+      }
+    }
+  }
+
   void detect(cv::Mat &img)
   {
-    std::cout << "begin detect" << std::endl;
+    cv::Mat lVerticalImage(img.size(), 0);
+    verticalEdgeDetection(img, lVerticalImage);
+    img = lVerticalImage;
 
-    cv::threshold(img, img, 97, 1, 0);
-    cv::Mat difference(img.size(), 0);
-    std::cout << "before for 1" << std::endl;
+    // std::vector<int> lYProjection = Tools::verticalProjection(lVerticalImage);
+    // std::vector<int> lYProjectionConvolution(lYProjection);
+    // Tools::linearizeVector(lYProjection, lYProjectionConvolution, 4);
 
-    for (int y = 0; y < img.cols; y++)
-    {
-      for (int x = 0; x < img.rows; x++)
-        difference.at<uchar>(x, y) = 0.0;
-    }
-    std::cout << "before for 2" << std::endl;
 
-    for (int y = 0; y < img.cols; y++)
-    {
-      for (int x = 0; x < img.rows; x++)
-        difference.at<uchar>(x, y) = std::abs(img.at<uchar>(x, y) - img.at<uchar>(x, y + 1));
-    }
+    // cv::threshold(img, img, 97, 1, 0);
+    // cv::Mat difference(img.size(), 0);
 
-    std::cout << "before for 3" << std::endl;
+    // for (int y = 0; y < img.cols; y++)
+    // {
+    //   for (int x = 0; x < img.rows; x++)
+    //     difference.at<uchar>(x, y) = 0.0;
+    // }
 
-    std::vector<int> sum;
-    for (int x = 0; x < img.rows; x++)
-    {
-      int sumline = 0;
-      for (int y = 0; y < img.cols; y++)
-      {
-        sumline += difference.at<uchar>(x, y);
-      }
-      sum.push_back(sumline);
-    }
-    std::cout << "before for 4" << std::endl;
+    // for (int y = 0; y < img.cols; y++)
+    // {
+    //   for (int x = 0; x < img.rows; x++)
+    //     difference.at<uchar>(x, y) = std::abs(img.at<uchar>(x, y) - img.at<uchar>(x, y + 1));
+    // }
 
-    for (auto lol : sum)
-      std::cout << lol << std::endl;
 
-    std::cout << "end detect" << std::endl;
+    // std::vector<int> sum;
+    // for (int x = 0; x < img.rows; x++)
+    // {
+    //   int sumline = 0;
+    //   for (int y = 0; y < img.cols; y++)
+    //   {
+    //     sumline += difference.at<uchar>(x, y);
+    //   }
+    //   sum.push_back(sumline);
+    // }
+
+    // for (auto lol : sum)
+    //   std::cout << lol << std::endl;
+
 
   }
 
@@ -98,23 +122,23 @@ namespace algorithm
   {
     // stroke width transform
     // bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
-    cv::Mat bw32f, swt32f, kernel;
-    double  max;
-    int strokeRadius;
-    cv::threshold(img, img, 97, 1, 0);
-    img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
-    distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
-    minMaxLoc(swt32f, NULL, &max);  // find max
-    strokeRadius = (int)ceil(max);  // half the max stroke width
-    kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
+    // cv::Mat bw32f, swt32f, kernel;
+    // double  max;
+    // int strokeRadius;
+    // cv::threshold(img, img, 97, 1, 0);
+    // img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
+    // distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
+    // minMaxLoc(swt32f, NULL, &max);  // find max
+    // strokeRadius = (int)ceil(max);  // half the max stroke width
+    // kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
 
-    for (int j = 0; j < strokeRadius; j++)
-    {
-      dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
-      swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
-    }
-    // swt32f : resulting SWT image
-    img = swt32f;
+    // for (int j = 0; j < strokeRadius; j++)
+    // {
+    //   dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
+    //   swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
+    // }
+    // // swt32f : resulting SWT image
+    // img = swt32f;
     detect(img);
   }
 

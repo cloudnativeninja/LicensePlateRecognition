@@ -53,7 +53,6 @@ namespace algorithm
     cv::medianBlur(img, img, 3);
   }
 
-
   void sobel(cv::Mat &img)
   {
     cv::Mat grad_x, grad_y;
@@ -71,6 +70,122 @@ namespace algorithm
 
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, img);
   }
+
+  void preProcessingPlate(const cv::Mat src, cv::Mat &dst)
+  {
+    cv::Mat med = src;
+    median(med);
+    sobel(med);
+    otsu(med);
+    dst = med;
+  }
+
+
+  std::vector<std::pair<unsigned int, unsigned int>>
+      gatherProjection(std::vector<std::pair<unsigned int, unsigned int>> iVector)
+  {
+    std::vector<std::pair<unsigned int, unsigned int>> lGatheredVector;
+    int lEpsilon = 2;
+    for (unsigned int i = 0; i < iVector.size() - 1; ++i)
+    {
+      int lBornInf1 = iVector[i].first;
+      int lBornSup1 = iVector[i].second;
+      int lBornInf2 = iVector[i + 1].first;
+      int lBornSup2 = iVector[i + 1].second;
+      if (lBornInf2 - lBornSup1 <= lEpsilon)
+      {
+        lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf1, lBornSup2));
+      }
+      else
+      {
+        lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf1, lBornSup1));
+        if (i == iVector.size() - 2)
+        {
+          lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf2, lBornSup2));
+        }
+      }
+    }
+
+    if (iVector.size() == 1)
+    {
+      return iVector;
+    }
+
+    return lGatheredVector;
+  }
+
+  std::vector<std::pair<unsigned int, unsigned int>>
+      applyThresholding(std::vector<int> projection, int threshold)
+  {
+    std::vector<std::pair<unsigned int, unsigned int>> lLimites;
+    bool lIsContinuous = false;
+    unsigned int lBornInf = 0;
+    unsigned int lBornSup = 0;
+    for (unsigned int i = 0; i < projection.size(); ++i)
+    {
+      if (projection[i] > threshold)
+      {
+        if (!lIsContinuous)
+        {
+          lBornInf = i;
+          lIsContinuous = true;
+          lBornSup = lBornInf;
+        }
+        if (i == lBornSup + 1)
+        {
+          lIsContinuous = true;
+          lBornSup = i;
+        }
+      }
+      else if (lIsContinuous)
+      {
+        lIsContinuous = false;
+        lLimites.push_back(std::pair<unsigned int, unsigned int> (lBornInf, lBornSup));
+      }
+    }
+    if (lLimites.empty())
+      return lLimites;
+
+    std::vector<std::pair<unsigned int, unsigned int>> gatheredBornes;
+    gatheredBornes = gatherProjection(lLimites);
+    for (unsigned int i = 1; i < lLimites.size(); ++i)
+    {
+      gatheredBornes = gatherProjection(gatheredBornes);
+    }
+    return gatheredBornes;
+  }
+
+
+  void
+  selectBySegmentation(cv::Mat iImage, std::vector<std::pair<int, int>> &iBands, std::vector<std::pair<int, int>> &iPlates)
+  {
+    std::vector<std::pair<int, int>> lGoodBands;
+    std::vector<std::pair<int, int>> lGoodPlates;
+    for (unsigned int i = 0; i < iBands.size(); ++i)
+    {
+      std::pair<int, int> lBand = iBands[i];
+      std::pair<int, int> lPlate = iPlates[i];
+      int lWidth = lPlate.second - lPlate.first;
+      int lHeight = lBand.second - lBand.first;
+
+      cv::Mat lSubImage = cv::Mat(iImage, cv::Rect(lPlate.first, lBand.first, lWidth, lHeight));
+      preProcessingPlate(lSubImage, lSubImage);
+      int lThreshold = 68 * lSubImage.rows;
+      std::vector<int> lXProjection = Tools::horizontalProjection(lSubImage);
+      std::vector<std::pair<unsigned int, unsigned int>> lSegmentedProjection = applyThresholding(lXProjection, lThreshold);
+      cv::Mat horizontalProjectionImage = Tools::horizontalProjection(lSubImage, lSegmentedProjection);
+
+      unsigned int lLength = lSegmentedProjection.size();
+      if (lLength >= 7 && lLength <= 18)
+      {
+        lGoodBands.push_back(lBand);
+        lGoodPlates.push_back(lPlate);
+      }
+    }
+    iBands = lGoodBands;
+    iPlates = lGoodPlates;
+  }
+
 
   double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
   {
@@ -311,6 +426,27 @@ namespace algorithm
     return lResultImage;
   }
 
+  int
+  selectByRatio(std::vector<std::pair<int, int>> iBands, std::vector<std::pair<int, int>> iPlates)
+  {
+    int lBestROIIndex = -1;
+    float lBestRatio = 9000;
+    std::cout << iBands.size() << std::endl;
+    for (unsigned int i = 0; i < iBands.size(); ++i)
+    {
+      std::pair<int, int> lBand = iBands[i];
+      std::pair<int, int> lPlate = iPlates[i];
+      float lRatio = (float)(lPlate.second - lPlate.first) / (float)(lBand.second - lBand.first);
+      if (std::abs(lRatio - 4.72) <= lBestRatio)
+      {
+        lBestRatio = std::abs(lRatio - 4.72);
+        lBestROIIndex = i;
+      }
+    }
+    if (lBestRatio < 11)
+      return lBestROIIndex;
+    return -1;
+  }
 
   void detect(cv::Mat &img)
   {
@@ -340,7 +476,37 @@ namespace algorithm
     std::vector<std::pair<int, int> > lPlates;
     selectHorizontalPeakProjection(lXProjectionConvolution, lPlates, 0.24);
     cv::Mat lROIImage = printROIs(lGrayScaleImage, lBands, lPlates);
-    img = lROIImage;
+
+    selectBySegmentation(lGrayScaleImage, lBands, lPlates);
+    int lIndexGoodPlate = selectByRatio(lBands, lPlates);
+
+    if (lIndexGoodPlate == -1)
+      std::cout << "Plate not found..." << std::endl;
+    else
+    {
+      std::pair<int, int> lBand = lBands[lIndexGoodPlate];
+      std::pair<int, int> lPlate = lPlates[lIndexGoodPlate];
+
+      cv::Mat lFinalImage(lGrayScaleImage.size(), 0.0);
+
+      for (int y = 0; y < lGrayScaleImage.rows; y++)
+      {
+        for (int x = 0; x < lGrayScaleImage.cols; x++)
+          lFinalImage.at<uchar>(y, x) = 0.0;
+      }
+
+      for (int y = lBand.first; y <= lBand.second; ++y)
+      {
+        for (int x = lPlate.first; x <= lPlate.second; ++x)
+        {
+          lFinalImage.at<uchar>(y, x) = lGrayScaleImage.at<uchar>(y, x);
+        }
+      }
+
+      img = lFinalImage;
+      std::cout << "Potential plate found!" << std::endl;
+
+    }
   }
 
 
@@ -367,7 +533,5 @@ namespace algorithm
     // img = swt32f;
     backupdetect(img);
   }
-
-
 
 }

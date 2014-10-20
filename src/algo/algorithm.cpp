@@ -13,6 +13,7 @@
 
 #include "../tools/Tools.h"
 #include "line.hh"
+#include "../filter/Filter.hh"
 
 namespace algorithm
 {
@@ -52,69 +53,140 @@ namespace algorithm
     cv::medianBlur(img, img, 3);
   }
 
-  void verticalEdgeDetection(const cv::Mat &src, cv::Mat &dst)
-  {
-    for (int y = 0; y < src.rows; y++)
-    {
-      for (int x = 0; x < src.cols; x++)
-        dst.at<uchar>(y, x) = 0.0;
-    }
 
-    for (int y = 1; y < src.rows - 1; y++)
+  void selectHorizontalPeakProjection(std::vector<std::vector<int> > iXProjectionConvolution,
+                                      std::vector<std::pair<int, int> > &iPlates, float iCoefficient)
+  {
+    for (std::vector<int> lXProjection : iXProjectionConvolution)
     {
-      for (int x = 1; x < src.cols - 1; x++)
-      {
-        int v = Tools::convolutionYDetection(src, x, y);
-        int sum = abs(v);
-        sum = sum > 255 ? 255 : sum;
-        sum = sum < 0 ? 0 : sum;
-        dst.at<uchar>(y, x) = sum;
-      }
+      std::vector<int>::iterator lIterator = std::max_element(lXProjection.begin(), lXProjection.end());
+      int lXBm = std::find(lXProjection.begin(), lXProjection.end(), *lIterator) - lXProjection.begin();
+
+      int lXB0 = lXBm;
+      for (; lXProjection[lXB0] >= iCoefficient * lXProjection[lXBm]; lXB0--);
+
+      int lXB1 = lXBm;
+      for (; lXProjection[lXB1] >= iCoefficient * lXProjection[lXBm]; lXB1++);
+      lXB1--;
+
+      iPlates.push_back(std::make_pair(lXB0, lXB1));
     }
   }
 
+  void selectVerticalPeakProjection(std::vector<int> &iYProjectionConvolution, std::vector<std::pair<int, int> > &iBands, float iCoefficient)
+  {
+    std::vector<int> lYProjectionCopy(iYProjectionConvolution);
+    int lNbBandsToBeDetected = 3;
+    while (lNbBandsToBeDetected > 0)
+    {
+      std::vector<int>::iterator lIterator = std::max_element(lYProjectionCopy.begin(), lYProjectionCopy.end());
+      int lYBm = std::find(lYProjectionCopy.begin(), lYProjectionCopy.end(), *lIterator) - lYProjectionCopy.begin();
+      int lYB0 = lYBm;
+      for (; lYProjectionCopy[lYB0] >= iCoefficient * lYProjectionCopy[lYBm]; lYB0--);
+
+      int lYB1 = lYBm;
+      for (; lYProjectionCopy[lYB1] >= iCoefficient * lYProjectionCopy[lYBm]; lYB1++);
+      lYB1--;
+
+      if (lYProjectionCopy[lYB0] == 0)
+      {
+        for (unsigned i = 0; i < iBands.size(); ++i)
+        {
+          if (std::abs(lYB0 - iBands[i].second) <= 1)
+          {
+            iBands[i] = std::pair<int, int>(iBands[i].first, lYB1);
+          }
+        }
+      }
+      else if (lYProjectionCopy[lYB1] == 0)
+      {
+        for (unsigned i = 0; i < iBands.size(); ++i)
+        {
+          if (std::abs(lYB1 - iBands[i].first) <= 1)
+          {
+            iBands[i] = std::pair<int, int>(lYB0, iBands[i].second);
+          }
+        }
+      }
+      else
+        iBands.push_back(std::make_pair(lYB0, lYB1));
+
+      for (int i = lYB0; i <= lYB1; ++i)
+        lYProjectionCopy[i] = 0;
+
+      lNbBandsToBeDetected--;
+    }
+  }
+
+  cv::Mat verticalProject(cv::Mat iImage, std::vector<std::pair<int, int> > iBands)
+  {
+    cv::Mat lResultImage(iImage.size(), 0);
+    for (std::pair<int, int> lBand : iBands)
+    {
+      int lYB0 = lBand.first;
+      int lYB1 = lBand.second;
+      for (int y = lYB0; y <= lYB1; ++y)
+      {
+        for (int x = 0; x < iImage.cols; ++x)
+        {
+          lResultImage.at<uchar>(y, x) = iImage.at<uchar>(y, x);
+        }
+      }
+    }
+    return lResultImage;
+  }
+
+
+  cv::Mat
+  printROIs(cv::Mat iImage, std::vector<std::pair<int, int> > iBands, std::vector<std::pair<int, int> > iPlates)
+  {
+    cv::Mat lResultImage(iImage.size(), 0);
+    for (unsigned i = 0; i < iBands.size(); ++i)
+    {
+      std::pair<int, int> lBand = iBands[i];
+      std::pair<int, int> lPlate = iPlates[i];
+      for (int y = lBand.first; y <= lBand.second; ++y)
+      {
+        for (int x = lPlate.first; x <= lPlate.second; ++x)
+        {
+          lResultImage.at<uchar>(y, x) = iImage.at<uchar>(y, x);
+        }
+      }
+    }
+    // Tools::showImage(lResultImage, "ROIs");
+    return lResultImage;
+  }
+
+
   void detect(cv::Mat &img)
   {
-    cv::Mat lVerticalImage(img.size(), 0);
-    verticalEdgeDetection(img, lVerticalImage);
+    cv::Mat lGrayScaleImage = img;
+    cv::Mat lVerticalImage(lGrayScaleImage.size(), 0);
+    Filter::verticalEdgeDetection(lGrayScaleImage, lVerticalImage);
     img = lVerticalImage;
 
-    // std::vector<int> lYProjection = Tools::verticalProjection(lVerticalImage);
-    // std::vector<int> lYProjectionConvolution(lYProjection);
-    // Tools::linearizeVector(lYProjection, lYProjectionConvolution, 4);
+    std::vector<int> lYProjection = Tools::verticalProjection(lVerticalImage);
+    std::vector<int> lYProjectionConvolution(lYProjection);
+    Tools::linearizeVector(lYProjection, lYProjectionConvolution, 4);
+    std::vector<std::pair<int, int> > lBands;
+    selectVerticalPeakProjection(lYProjectionConvolution, lBands, 0.55);
 
+    cv::Mat lVerticalProjectionImage = verticalProject(lGrayScaleImage, lBands);
+    img = lVerticalProjectionImage;
 
-    // cv::threshold(img, img, 97, 1, 0);
-    // cv::Mat difference(img.size(), 0);
+    cv::Mat lHorizontalImage(lGrayScaleImage.size(), 0);
+    Filter::horizontalEdgeDetection(lGrayScaleImage, lHorizontalImage);
 
-    // for (int y = 0; y < img.cols; y++)
-    // {
-    //   for (int x = 0; x < img.rows; x++)
-    //     difference.at<uchar>(x, y) = 0.0;
-    // }
+    std::vector<std::vector<int> > lXProjections;
+    Tools::horizontalProjection(lHorizontalImage, lBands, lXProjections);
+    std::vector<std::vector<int> > lXProjectionConvolution(lXProjections);
+    for (unsigned i = 0; i < lXProjectionConvolution.size(); ++i)
+      Tools::linearizeVector(lXProjections[i], lXProjectionConvolution[i], 40);
 
-    // for (int y = 0; y < img.cols; y++)
-    // {
-    //   for (int x = 0; x < img.rows; x++)
-    //     difference.at<uchar>(x, y) = std::abs(img.at<uchar>(x, y) - img.at<uchar>(x, y + 1));
-    // }
-
-
-    // std::vector<int> sum;
-    // for (int x = 0; x < img.rows; x++)
-    // {
-    //   int sumline = 0;
-    //   for (int y = 0; y < img.cols; y++)
-    //   {
-    //     sumline += difference.at<uchar>(x, y);
-    //   }
-    //   sum.push_back(sumline);
-    // }
-
-    // for (auto lol : sum)
-    //   std::cout << lol << std::endl;
-
-
+    std::vector<std::pair<int, int> > lPlates;
+    selectHorizontalPeakProjection(lXProjectionConvolution, lPlates, 0.24);
+    cv::Mat lROIImage = printROIs(lGrayScaleImage, lBands, lPlates);
+    img = lROIImage;
   }
 
 

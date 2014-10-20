@@ -66,6 +66,7 @@ set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 add_subdirectory("${SOURCE_DIR}/main")
 add_subdirectory("${SOURCE_DIR}/algo")
 add_subdirectory("${SOURCE_DIR}/tools")
+add_subdirectory("${SOURCE_DIR}/filter")
 
 
 

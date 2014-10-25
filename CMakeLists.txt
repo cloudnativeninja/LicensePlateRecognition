@@ -46,6 +46,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/lib/")
 
 find_package(TESSERACT)
 find_package(OpenCV REQUIRED)
+find_package(Qt4 REQUIRED)
 
 
 if(NOT TESSERACT_FOUND)
@@ -60,6 +61,7 @@ else(NOT OpenCV_FOUND)
 		MESSAGE (STATUS "OpenCV LIB found. Project will be built.")
 endif(NOT OpenCV_FOUND)
 
+QT4_WRAP_CPP(HDSQT ${helloworld_HEADERS})
 
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 
@@ -70,6 +72,8 @@ add_subdirectory("${SOURCE_DIR}/filter")
 
 
 
+INCLUDE(${QT_USE_FILE})
+ADD_DEFINITIONS(${QT_DEFINITIONS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIBRARY_DIRS})
 
@@ -77,10 +81,10 @@ include_directories(${TESSERACT_INCLUDE_DIRS})
 link_directories(${TESSERACT_LIBRARY_DIRS})
 
 add_executable(
-	lpr ${SRCS} ${HDS}
+	lpr ${SRCS} ${HDS} ${HDSQT}
 )
 target_link_libraries(lpr ${TESSERACT_LIBRARIES})
 target_link_libraries(lpr ${OpenCV_LIBRARIES})
-
+TARGET_LINK_LIBRARIES(helloworld ${QT_LIBRARIES})
 
 message(STATUS "${SRCS}")

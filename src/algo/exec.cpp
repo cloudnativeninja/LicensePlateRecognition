@@ -11,12 +11,21 @@ namespace algorithm
     { "blur", blurgaussian },
     { "grayscale", grayscale },
     { "sobel", sobel },
-    { "ostu", otsu },
+    { "otsu", otsu },
     { "swt", swt },
     { "median", median },
     { "morph", morph },
-    { "edge_detect", edge_detect}
+    { "hist", equalize},
+    { "robert", roberts}
   };
+
+  void precise_loc(cv::Mat &originalimage, std::vector < std::vector<std::pair<int, int>>> regions)
+  {
+    cv::Mat gray = originalimage;
+    grayscale(gray);
+    fillzone(gray, regions);
+    originalimage = gray;
+  }
 
   void exec_all(std::list<std::string> &as, cv::Mat &img)
   {
@@ -25,7 +34,23 @@ namespace algorithm
       funcs[a](img);
       Tools::showImage(img, a);
     }
-
+    /*    std::vector < std::vector<std::pair<int, int>>> regions;
+    regions = location(img);
+    precise_loc(originalimage, regions);
+    Tools::showImage(originalimage, "Grey Coarse Location");
+    sobel(originalimage);
+    // cv::Canny(originalimage, originalimage, 100, 200, 3);
+    Tools::showImage(originalimage, "Sobel");
+    erosion(originalimage);
+    Tools::showImage(originalimage, "Erosion");
+    // dilation(originalimage);
+    // Tools::showImage(originalimage, "Dilation");
+    morph2(originalimage, 1); // Closing Operation
+    Tools::showImage(originalimage, "Closing");
+    removeSmallBlobs(originalimage);
+    Tools::showImage(originalimage, "bwareopen");
+    sumvertical(originalimage);*/
   }
+
 }
 

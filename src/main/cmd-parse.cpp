@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <getopt.h>
+#include <iostream>
 
 namespace parse
 {
@@ -21,6 +22,9 @@ namespace parse
       {"swt",  no_argument, 0, 't' },
       {"median",  no_argument, 0, 'm' },
       {"morph",  no_argument, 0, 'p' },
+      {"hist",  no_argument, 0, 'i' },
+      {"loc",  no_argument, 0, 'l' },
+      {"robert",  no_argument, 0, 'r' },
       {0,         0,                 0,  0 }
     };
     int c;
@@ -30,7 +34,7 @@ namespace parse
     {
       int option_index = 0;
 
-      c = getopt_long(ac, av, "sgbotemp",
+      c = getopt_long(ac, av, "sgbotempilr",
                       long_options, &option_index);
       if (c == -1)
         break;
@@ -67,7 +71,15 @@ namespace parse
         case 'p':
           opts["algorithms"].push_back("morph");
           break;
-
+        case 'i':
+          opts["algorithms"].push_back("hist");
+          break;
+        case 'l':
+          opts["algorithms"].push_back("loc");
+          break;
+        case 'r':
+          opts["algorithms"].push_back("robert");
+          break;
 
         case 'g':
           opts["algorithms"].push_back("grayscale");

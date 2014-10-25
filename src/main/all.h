@@ -24,6 +24,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../tools/Tools.h"
-
+#include <vector>
+#include <iostream>
+#include <algorithm>
 
 #endif /* ALL_H_ */

@@ -1,9 +1,12 @@
 #include "all.h"
 #include "cmd-parse.hh"
 #include "../algo/exec.hh"
+#include "../gui/mainwindow.h"
+#include <QApplication>
 
 int main(int ac, char **av)
 {
+#if 0
   options opts;
   cv::Mat lImage;
 
@@ -12,4 +15,11 @@ int main(int ac, char **av)
   Tools::showImage(lImage, "Original Image");
   algorithm::exec_all(opts["algorithms"], lImage);
   return 0;
+#else
+  QApplication a(ac, av);
+  MainWindow w;
+  w.show();
+
+  return a.exec();
+#endif
 }

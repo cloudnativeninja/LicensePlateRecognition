@@ -25,14 +25,14 @@ namespace algorithm
   void grayscale(cv::Mat &img)
   {
     cv::cvtColor(img, img, CV_RGB2GRAY);
-    // cv::equalizeHist(img, img);
+
   }
 
   // Morphological Transforms
   void morph(cv::Mat &img)
   {
     int morph_elem = 0; //Element:\n 0: Rect - 1: Cross - 2: Ellipse
-    int morph_size = 21; // Kernel size:\n 2n +1 (max 21)
+    int morph_size = 3; // Kernel size:\n 2n +1 (max 21)
     int morph_operator = 3; //Operator:\n 0: Opening - 1: Closing \n 2: Gradient - 3: Top Hat \n 4: Black Hat
 
     int operation = morph_operator + 2;
@@ -71,7 +71,7 @@ namespace algorithm
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, img);
   }
 
-  void preProcessingPlate(const cv::Mat src, cv::Mat& dst)
+  void preProcessingPlate(const cv::Mat src, cv::Mat &dst)
   {
     cv::Mat med = src;
     median(med);
@@ -82,25 +82,32 @@ namespace algorithm
 
 
   std::vector<std::pair<unsigned int, unsigned int>>
-    gatherProjection(std::vector<std::pair<unsigned int, unsigned int>> iVector) {
+      gatherProjection(std::vector<std::pair<unsigned int, unsigned int>> iVector)
+  {
     std::vector<std::pair<unsigned int, unsigned int>> lGatheredVector;
     int lEpsilon = 2;
-    for (unsigned int i = 0; i < iVector.size() - 1; ++i) {
+    for (unsigned int i = 0; i < iVector.size() - 1; ++i)
+    {
       int lBornInf1 = iVector[i].first;
       int lBornSup1 = iVector[i].second;
       int lBornInf2 = iVector[i + 1].first;
       int lBornSup2 = iVector[i + 1].second;
-      if (lBornInf2 - lBornSup1 <= lEpsilon) {
-	lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf1, lBornSup2));
-      } else {
-	lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf1, lBornSup1));
-	if (i == iVector.size() - 2) {
-	  lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf2, lBornSup2));
-	}
+      if (lBornInf2 - lBornSup1 <= lEpsilon)
+      {
+        lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf1, lBornSup2));
+      }
+      else
+      {
+        lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf1, lBornSup1));
+        if (i == iVector.size() - 2)
+        {
+          lGatheredVector.push_back(std::pair<unsigned int, unsigned int>(lBornInf2, lBornSup2));
+        }
       }
     }
 
-    if (iVector.size() == 1) {
+    if (iVector.size() == 1)
+    {
       return iVector;
     }
 
@@ -108,25 +115,32 @@ namespace algorithm
   }
 
   std::vector<std::pair<unsigned int, unsigned int>>
-    applyThresholding(std::vector<int> projection, int threshold) {
+      applyThresholding(std::vector<int> projection, int threshold)
+  {
     std::vector<std::pair<unsigned int, unsigned int>> lLimites;
     bool lIsContinuous = false;
     unsigned int lBornInf = 0;
     unsigned int lBornSup = 0;
-    for (unsigned int i = 0; i < projection.size(); ++i) {
-      if (projection[i] > threshold) {
-	if (!lIsContinuous) {
-	  lBornInf = i;
-	  lIsContinuous = true;
-	  lBornSup = lBornInf;
-	}
-	if (i == lBornSup + 1) {
-	  lIsContinuous = true;
-	  lBornSup = i;
-	}
-      } else if (lIsContinuous) {
-	lIsContinuous = false;
-	lLimites.push_back(std::pair<unsigned int, unsigned int> (lBornInf, lBornSup));
+    for (unsigned int i = 0; i < projection.size(); ++i)
+    {
+      if (projection[i] > threshold)
+      {
+        if (!lIsContinuous)
+        {
+          lBornInf = i;
+          lIsContinuous = true;
+          lBornSup = lBornInf;
+        }
+        if (i == lBornSup + 1)
+        {
+          lIsContinuous = true;
+          lBornSup = i;
+        }
+      }
+      else if (lIsContinuous)
+      {
+        lIsContinuous = false;
+        lLimites.push_back(std::pair<unsigned int, unsigned int> (lBornInf, lBornSup));
       }
     }
     if (lLimites.empty())
@@ -134,7 +148,8 @@ namespace algorithm
 
     std::vector<std::pair<unsigned int, unsigned int>> gatheredBornes;
     gatheredBornes = gatherProjection(lLimites);
-    for (unsigned int i = 1; i < lLimites.size(); ++i) {
+    for (unsigned int i = 1; i < lLimites.size(); ++i)
+    {
       gatheredBornes = gatherProjection(gatheredBornes);
     }
     return gatheredBornes;
@@ -142,10 +157,12 @@ namespace algorithm
 
 
   void
-  selectBySegmentation(cv::Mat iImage, std::vector<std::pair<int, int>>& iBands, std::vector<std::pair<int, int>>& iPlates) {
+  selectBySegmentation(cv::Mat iImage, std::vector<std::pair<int, int>> &iBands, std::vector<std::pair<int, int>> &iPlates)
+  {
     std::vector<std::pair<int, int>> lGoodBands;
     std::vector<std::pair<int, int>> lGoodPlates;
-    for (unsigned int i = 0; i < iBands.size(); ++i) {
+    for (unsigned int i = 0; i < iBands.size(); ++i)
+    {
       std::pair<int, int> lBand = iBands[i];
       std::pair<int, int> lPlate = iPlates[i];
       int lWidth = lPlate.second - lPlate.first;
@@ -159,14 +176,152 @@ namespace algorithm
       cv::Mat horizontalProjectionImage = Tools::horizontalProjection(lSubImage, lSegmentedProjection);
 
       unsigned int lLength = lSegmentedProjection.size();
-      if (lLength >= 7 && lLength <= 18) {
-	lGoodBands.push_back(lBand);
-	lGoodPlates.push_back(lPlate);
+      if (lLength >= 7 && lLength <= 18)
+      {
+        lGoodBands.push_back(lBand);
+        lGoodPlates.push_back(lPlate);
       }
     }
     iBands = lGoodBands;
     iPlates = lGoodPlates;
   }
+
+
+  double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
+  {
+    double dx1 = pt1.x - pt0.x;
+    double dy1 = pt1.y - pt0.y;
+    double dx2 = pt2.x - pt0.x;
+    double dy2 = pt2.y - pt0.y;
+    return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
+  }
+
+  void edge_detect(cv::Mat &img)
+  {
+    cv::RNG rng(12345);
+
+    std::vector<std::vector<cv::Point> > contours;
+    //    cv::Canny(img, img, 100, 200, 3);
+    cv::findContours(img.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    // The array for storing the approximation curve
+    std::vector<cv::Point> approx;
+
+    // We'll put the labels in this destination image
+    cv::Mat dst = img.clone();
+
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+      // Approximate contour with accuracy proportional
+      // to the contour perimeter
+      cv::approxPolyDP(
+        cv::Mat(contours[i]),
+        approx,
+        cv::arcLength(cv::Mat(contours[i]), true) * 0.05,
+        true
+      );
+      /*      cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+      cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
+      */
+      // Skip small or non-convex objects
+      if (approx.size() == 4)
+      {
+        // Number of vertices of polygonal curve
+        int vtc = approx.size();
+
+        // Get the degree (in cosines) of all corners
+        std::vector<double> cos;
+        for (int j = 2; j < vtc + 1; j++)
+          cos.push_back(angle(approx[j % vtc], approx[j - 2], approx[j - 1]));
+
+        // Sort ascending the corner degree values
+        std::sort(cos.begin(), cos.end());
+
+        // Get the lowest and the highest degree
+        double mincos = cos.front();
+        double maxcos = cos.back();
+
+        // Use the degrees obtained above and the number of vertices
+        // to determine the shape of the contour
+        if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3)
+        {
+          // Detect rectangle or square
+          cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255) );
+          cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
+        }
+      }
+    } // end of for() loop
+    /*
+    std::vector<cv::Vec2f> vecs;
+    std::vector<line> lines;
+    std::vector<std::pair<line, line>> parallels;
+    cv::Mat dst = img.clone();
+
+    //    cv::Canny(img.clone(), dst, 50, 200, 3);
+
+    cv::HoughLines(dst, vecs, 1, CV_PI / 180, 100, 0, 0);
+
+    for (size_t i = 0; i < vecs.size(); i++)
+      lines.push_back(line(vecs[i]));
+
+    //    for (line& l : lines)
+    //l.draw(dst);
+
+    for (size_t i = 0; i < lines.size(); i++)
+      for (size_t j = 0; j < lines.size(); j++)
+    if (i != j && lines[i].is_horizontal() && lines[j].is_horizontal()
+      && lines[i].is_parallel(lines[j]))
+    parallels.push_back(std::pair<line, line>(lines[i], lines[j]));
+
+    std::cout << parallels.size() << std::endl;
+    for (size_t i = 0; i < parallels.size(); i++)
+    {
+      parallels[i].first.draw(dst);
+      parallels[i].second.draw(dst);
+    }
+    */
+    img = dst;
+  }
+
+
+  /** @function Dilation */
+  void dilation(cv::Mat &img)
+  {
+    int dilation_elem = 0; //Element: \n 0: Rect \n 1: Cross \n 2: Ellipse
+    int dilation_size = 3; //Kernel size: \n 2n + 1
+    int dilation_type = cv::MORPH_RECT;
+
+    if ( dilation_elem == 0 )
+    {
+      dilation_type = cv::MORPH_RECT;
+    }
+    else if ( dilation_elem == 1 )
+    {
+      dilation_type = cv::MORPH_CROSS;
+    }
+    else if ( dilation_elem == 2)
+    {
+      dilation_type = cv::MORPH_ELLIPSE;
+    }
+
+    cv::Mat element = getStructuringElement( dilation_type,
+                      cv::Size( 2 * dilation_size + 1, 2 * dilation_size + 1 ),
+                      cv::Point( dilation_size, dilation_size ) );
+    /// Apply the dilation operation
+    cv::Mat dst;
+    cv::dilate(img, dst, element );
+    img = dst;
+  }
+
+  void backupdetect(cv::Mat &img)
+  {
+    grayscale(img);
+    cv::equalizeHist(img, img);
+    morph(img);
+    sobel(img);
+    dilation(img);
+  }
+
 
   void selectHorizontalPeakProjection(std::vector<std::vector<int> > iXProjectionConvolution,
                                       std::vector<std::pair<int, int> > &iPlates, float iCoefficient)
@@ -272,13 +427,15 @@ namespace algorithm
   }
 
   int
-  selectByRatio(std::vector<std::pair<int, int>> iBands, std::vector<std::pair<int, int>> iPlates) {
+  selectByRatio(std::vector<std::pair<int, int>> iBands, std::vector<std::pair<int, int>> iPlates)
+  {
     int lBestROIIndex = -1;
     float lBestRatio = 9000;
     std::cout << iBands.size() << std::endl;
-    for(unsigned int i = 0; i < iBands.size(); ++i) {
-      std::pair<int,int> lBand = iBands[i];
-      std::pair<int,int> lPlate = iPlates[i];
+    for (unsigned int i = 0; i < iBands.size(); ++i)
+    {
+      std::pair<int, int> lBand = iBands[i];
+      std::pair<int, int> lPlate = iPlates[i];
       float lRatio = (float)(lPlate.second - lPlate.first) / (float)(lBand.second - lBand.first);
       if (std::abs(lRatio - 3.14) <= lBestRatio) {
 	lBestRatio = std::abs(lRatio - 3.14);
@@ -440,9 +597,21 @@ namespace algorithm
       std::pair<int, int> lBand = lBands[lIndexGoodPlate];
       std::pair<int, int> lPlate = lPlates[lIndexGoodPlate];
 
-      cv::Rect roi(lPlate.first, lBand.first, lPlate.second - lPlate.first, lBand.second - lBand.first);
-      cv::Mat lFinalImage(img, roi);
+      cv::Mat lFinalImage(lGrayScaleImage.size(), 0.0);
 
+      for (int y = 0; y < lGrayScaleImage.rows; y++)
+      {
+        for (int x = 0; x < lGrayScaleImage.cols; x++)
+          lFinalImage.at<uchar>(y, x) = 0.0;
+      }
+
+      for (int y = lBand.first; y <= lBand.second; ++y)
+      {
+        for (int x = lPlate.first; x <= lPlate.second; ++x)
+        {
+          lFinalImage.at<uchar>(y, x) = lGrayScaleImage.at<uchar>(y, x);
+        }
+      }
 
       img = lFinalImage;
       reduce_noize(img);
@@ -492,101 +661,5 @@ namespace algorithm
     //    detect(img);
     detect(img);
     //    detect(img);
-  }
-
-  static double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
-  {
-    double dx1 = pt1.x - pt0.x;
-    double dy1 = pt1.y - pt0.y;
-    double dx2 = pt2.x - pt0.x;
-    double dy2 = pt2.y - pt0.y;
-    return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
-  }
-
-  void edge_detect(cv::Mat& img)
-  {
-    cv::RNG rng(12345);
-
-    std::vector<std::vector<cv::Point> > contours;
-    //    cv::Canny(img, img, 100, 200, 3);
-    cv::findContours(img.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    // The array for storing the approximation curve
-    std::vector<cv::Point> approx;
-
-    // We'll put the labels in this destination image
-    cv::Mat dst = img.clone();
-
-    for (size_t i = 0; i < contours.size(); i++)
-    {
-      // Approximate contour with accuracy proportional
-      // to the contour perimeter
-      cv::approxPolyDP(
-        cv::Mat(contours[i]),
-        approx,
-        cv::arcLength(cv::Mat(contours[i]), true) * 0.05,
-        true
-      );
-      /*      cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-       cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
-      */
-      // Skip small or non-convex objects
-      if (approx.size() == 4)
-      {
-        // Number of vertices of polygonal curve
-        int vtc = approx.size();
-
-        // Get the degree (in cosines) of all corners
-        std::vector<double> cos;
-        for (int j = 2; j < vtc + 1; j++)
-          cos.push_back(angle(approx[j % vtc], approx[j - 2], approx[j - 1]));
-
-        // Sort ascending the corner degree values
-        std::sort(cos.begin(), cos.end());
-
-        // Get the lowest and the highest degree
-        double mincos = cos.front();
-        double maxcos = cos.back();
-
-        // Use the degrees obtained above and the number of vertices
-        // to determine the shape of the contour
-        if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3)
-        {
-          // Detect rectangle or square
-          cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255) );
-          cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
-        }
-      }
-    } // end of for() loop
-    /*
-    std::vector<cv::Vec2f> vecs;
-    std::vector<line> lines;
-    std::vector<std::pair<line, line>> parallels;
-    cv::Mat dst = img.clone();
-
-    //    cv::Canny(img.clone(), dst, 50, 200, 3);
-
-    cv::HoughLines(dst, vecs, 1, CV_PI / 180, 100, 0, 0);
-
-    for (size_t i = 0; i < vecs.size(); i++)
-      lines.push_back(line(vecs[i]));
-
-    //    for (line& l : lines)
-    //l.draw(dst);
-
-    for (size_t i = 0; i < lines.size(); i++)
-      for (size_t j = 0; j < lines.size(); j++)
-    if (i != j && lines[i].is_horizontal() && lines[j].is_horizontal()
-      && lines[i].is_parallel(lines[j]))
-    parallels.push_back(std::pair<line, line>(lines[i], lines[j]));
-
-    std::cout << parallels.size() << std::endl;
-    for (size_t i = 0; i < parallels.size(); i++)
-    {
-      parallels[i].first.draw(dst);
-      parallels[i].second.draw(dst);
-    }
-    */
-    img = dst;
   }
 }

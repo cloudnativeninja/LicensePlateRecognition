@@ -24,28 +24,60 @@ namespace algorithm
 
   void grayscale(cv::Mat &img)
   {
-    cv::cvtColor(img, img, CV_RGB2GRAY);
-
+    cv::cvtColor(img, img, CV_BGR2GRAY);
   }
 
-  // Morphological Transforms
+  void equalize(cv::Mat &img)
+  {
+    cv::equalizeHist(img, img);
+  }
+
   void morph(cv::Mat &img)
+  {
+    img = img;
+  }
+
+
+  void open(cv::Mat &img)
   {
     int morph_elem = 0; //Element:\n 0: Rect - 1: Cross - 2: Ellipse
     int morph_size = 3; // Kernel size:\n 2n +1 (max 21)
-    int morph_operator = 3; //Operator:\n 0: Opening - 1: Closing \n 2: Gradient - 3: Top Hat \n 4: Black Hat
+    int morph_operator = 0; //Operator:\n 0: Opening - 1: Closing \n 2: Gradient - 3: Top Hat \n 4: Black Hat
 
     int operation = morph_operator + 2;
     cv::Mat element = getStructuringElement(morph_elem,
                                             cv::Size(2 * morph_size + 1, 2 * morph_size + 1),
                                             cv::Point(morph_size, morph_size));
+    // cv::Mat element = (cv::Mat_<uchar>(1, 2) << 25, 25);
+
+    cv::morphologyEx(img, img, operation, element);
+  }
+
+
+  // Morphological Transforms
+  void morph2(cv::Mat &img, int oprtor)
+  {
+    // int morph_elem = 0; //Element:\n 0: Rect - 1: Cross - 2: Ellipse
+    // int morph_size = 3; // Kernel size:\n 2n +1 (max 21)
+    int morph_operator = oprtor; //Operator:\n 0: Opening - 1: Closing \n 2: Gradient - 3: Top Hat \n 4: Black Hat
+
+    int operation = morph_operator + 2;
+    // cv::Mat element = getStructuringElement(morph_elem,
+    //                                         cv::Size(2 * morph_size + 1, 2 * morph_size + 1),
+    //                                         cv::Point(morph_size, morph_size));
+    cv::Mat element = (cv::Mat_<uchar>(1, 2) << 25, 25);
+
     cv::morphologyEx(img, img, operation, element);
   }
 
 
   void otsu(cv::Mat &img)
   {
-    cv::threshold(img, img, 128, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    // cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
+    // cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 11, 2);
+    // cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 11, 2);
+
+    cv::threshold(img, img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
   }
 
   void median(cv::Mat &img)
@@ -196,91 +228,35 @@ namespace algorithm
     return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
   }
 
-  void edge_detect(cv::Mat &img)
+  /**  @function Erosion  */
+  void erosion(cv::Mat &src)
   {
-    cv::RNG rng(12345);
-
-    std::vector<std::vector<cv::Point> > contours;
-    //    cv::Canny(img, img, 100, 200, 3);
-    cv::findContours(img.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    // The array for storing the approximation curve
-    std::vector<cv::Point> approx;
-
-    // We'll put the labels in this destination image
-    cv::Mat dst = img.clone();
-
-    for (size_t i = 0; i < contours.size(); i++)
+    int erosion_type = cv::MORPH_RECT;
+    int erosion_elem = 0; // Element:\n 0: Rect \n 1: Cross \n 2: Ellipse
+    // int erosion_size = 3; // Kernel size:\n 2n +1"
+    if ( erosion_elem == 0 )
     {
-      // Approximate contour with accuracy proportional
-      // to the contour perimeter
-      cv::approxPolyDP(
-        cv::Mat(contours[i]),
-        approx,
-        cv::arcLength(cv::Mat(contours[i]), true) * 0.05,
-        true
-      );
-      /*      cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-      cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
-      */
-      // Skip small or non-convex objects
-      if (approx.size() == 4)
-      {
-        // Number of vertices of polygonal curve
-        int vtc = approx.size();
-
-        // Get the degree (in cosines) of all corners
-        std::vector<double> cos;
-        for (int j = 2; j < vtc + 1; j++)
-          cos.push_back(angle(approx[j % vtc], approx[j - 2], approx[j - 1]));
-
-        // Sort ascending the corner degree values
-        std::sort(cos.begin(), cos.end());
-
-        // Get the lowest and the highest degree
-        double mincos = cos.front();
-        double maxcos = cos.back();
-
-        // Use the degrees obtained above and the number of vertices
-        // to determine the shape of the contour
-        if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3)
-        {
-          // Detect rectangle or square
-          cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255) );
-          cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
-        }
-      }
-    } // end of for() loop
-    /*
-    std::vector<cv::Vec2f> vecs;
-    std::vector<line> lines;
-    std::vector<std::pair<line, line>> parallels;
-    cv::Mat dst = img.clone();
-
-    //    cv::Canny(img.clone(), dst, 50, 200, 3);
-
-    cv::HoughLines(dst, vecs, 1, CV_PI / 180, 100, 0, 0);
-
-    for (size_t i = 0; i < vecs.size(); i++)
-      lines.push_back(line(vecs[i]));
-
-    //    for (line& l : lines)
-    //l.draw(dst);
-
-    for (size_t i = 0; i < lines.size(); i++)
-      for (size_t j = 0; j < lines.size(); j++)
-    if (i != j && lines[i].is_horizontal() && lines[j].is_horizontal()
-      && lines[i].is_parallel(lines[j]))
-    parallels.push_back(std::pair<line, line>(lines[i], lines[j]));
-
-    std::cout << parallels.size() << std::endl;
-    for (size_t i = 0; i < parallels.size(); i++)
-    {
-      parallels[i].first.draw(dst);
-      parallels[i].second.draw(dst);
+      erosion_type = cv::MORPH_RECT;
     }
-    */
-    img = dst;
+    else if ( erosion_elem == 1 )
+    {
+      erosion_type = cv::MORPH_CROSS;
+    }
+    else if ( erosion_elem == 2)
+    {
+      erosion_type = cv::MORPH_ELLIPSE;
+    }
+
+    // cv::Mat element = getStructuringElement( erosion_type,
+    //                   cv::Size( 2 * erosion_size + 1, 2 * erosion_size + 1 ),
+    //                   cv::Point( erosion_size, erosion_size ) );
+
+    cv::Mat element = (cv::Mat_<uchar>(1, 3) << 1, 1, 1);
+
+    /// Apply the erosion operation
+    cv::Mat dst(src.size(), 0);
+    cv::erode( src, dst, element );
+    src = dst;
   }
 
 
@@ -307,21 +283,208 @@ namespace algorithm
     cv::Mat element = getStructuringElement( dilation_type,
                       cv::Size( 2 * dilation_size + 1, 2 * dilation_size + 1 ),
                       cv::Point( dilation_size, dilation_size ) );
+
     /// Apply the dilation operation
     cv::Mat dst;
     cv::dilate(img, dst, element );
     img = dst;
   }
 
-  void backupdetect(cv::Mat &img)
+  /**
+   * Replacement for Matlab's bwareaopen()
+   * Input image must be 8 bits, 1 channel, black and white (objects)
+   * with values 0 and 255 respectively
+   */
+  void removeSmallBlobs(cv::Mat &im, double size)
   {
+    // Only accept CV_8UC1
+    if (im.channels() != 1 || im.type() != CV_8U)
+      return;
+
+    // Find all contours
+    std::vector<std::vector<cv::Point> > contours;
+    cv::findContours(im.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+      // Calculate contour area
+      double area = cv::contourArea(contours[i]);
+
+      // Remove small objects by drawing the contour with black color
+      if (area > 0 && area <= size)
+        cv::drawContours(im, contours, i, CV_RGB(0, 0, 0), -1);
+    }
+  }
+
+  bool  sup14(int jumps)
+  {
+    return (jumps >= 14);
+  }
+
+  int avg(std::vector<std::pair<int, int>> linejumps)
+  {
+    int avg = 0;
+    for (auto it = linejumps.begin(); it != linejumps.end(); it++)
+      avg += it->second;
+    avg /= linejumps.size();
+    return avg;
+  }
+
+
+
+  void roberts(cv::Mat &img)
+  {
+    // hx = [+1 0; 0 - 1]; hy = [0 + 1; -1 0];
+    // Gx = imfilter(img, hx, 'conv', 'same', 'replicate');
+    // Gy = imfilter(img, hy, 'conv', 'same', 'replicate');
+    // G = sqrt(Gx. ^ 2 + Gy. ^ 2);
+    img = img;
+  }
+
+  void fillzone(cv::Mat &img, std::vector < std::vector<std::pair<int, int>>> regions)
+  {
+    cv::Mat zone(img.size(), 0);
+    cv::Mat a(img.size(), 0);
+
+    int regioncount = 1;
+    for (auto region : regions)
+    {
+      for (auto row : region)
+      {
+        for (int x = 0; x < a.cols - 1; x++)
+        {
+          zone.at<uchar>(row.first, x) = img.at<uchar>(row.first, x);
+        }
+      }
+      regioncount--;
+      if (regioncount == 0)
+        break;
+    }
+    img = zone;
+  }
+
+  std::vector < std::pair<int, int>> sumvertical(cv::Mat &img)
+  {
+
+    std::vector<std::pair<int, int>> jumpscount;
+
+    for (int x = 0; x < img.cols; x++)
+    {
+      int tmp = 0;
+      for (int y = 0; y < img.rows; y++)
+      {
+        tmp += img.at<uchar>(y, x);
+      }
+      jumpscount.push_back(std::make_pair(x, tmp));
+    }
+    for (auto it : jumpscount)
+    {
+      std::cout << "points: (" << it.first << ", " << it.second << ")" << std::endl;
+    }
+
+    return jumpscount;
+  }
+
+  std::vector < std::vector<std::pair<int, int>>>
+  location(cv::Mat &img)
+  {
+    cv::Mat dest(img.size(), 0);
+    cv::Mat a(img.size(), 0);
+    cv::threshold(img, dest, 97, 1, 0);
+
+    for (int x = 0; x < a.cols - 1; x++)
+    {
+      for (int y = 0; y < a.rows; y++)
+      {
+        a.at<uchar>(y, x) = abs(dest.at<uchar>(y, x) - dest.at<uchar>(y, x + 1));
+      }
+    }
+
+    std::vector<std::pair<int, int>> jumpscount;
+
+    for (int y = 0; y < a.rows; y++)
+    {
+      int tmp = 0;
+      for (int x = 0; x < a.cols - 1; x++)
+      {
+        tmp += a.at<uchar>(y, x);
+      }
+      jumpscount.push_back(std::make_pair(y, tmp));
+    }
+
+    std::vector < std::vector<std::pair<int, int>>> regions;
+
+    bool inregion = false;
+    std::vector < std::pair<int, int>> region;
+    for (auto it : jumpscount)
+    {
+      if (it.second >= 14 && !inregion)
+      {
+        inregion = true;
+        region.push_back(it);
+      }
+      else if (it.second >= 14 && inregion)
+      {
+        inregion = true;
+        region.push_back(it);
+      }
+      else if (it.second < 14 && !inregion)
+      {
+        inregion = false;
+      }
+      else
+      {
+        inregion = false;
+        regions.push_back(region);
+        region.clear();
+      }
+    }
+
+    std::sort(regions.begin(), regions.end(), [](std::vector < std::pair<int, int>> region, std::vector < std::pair<int, int>> region2)
+    {
+      return (avg(region) > avg(region2));
+    });
+
+    fillzone(img, regions);
+    // cv::threshold(img, img, 0.5, 255, 0);
+
+    // for (auto region : regions)
+    // {
+    //   std::cout << "--------------------" << avg(region) << "------------------------" << std::endl;
+    //   for (auto it : region)
+    //   {
+    //     std::cout << "points: (" << it.first << ", " << it.second << ")" << std::endl;
+    //   }
+    // }
+    // cv::threshold(img, img, 0.5, 255, 0);
+
+    return regions;
+
+  }
+
+  void removeSmallBlobs(cv::Mat &img)
+  {
+    removeSmallBlobs(img, 21.);
+  }
+
+  void algochinoi2(cv::Mat &img)
+  {
+    cv::Mat original = img;
     grayscale(img);
     cv::equalizeHist(img, img);
+    median(img);
+    otsu(img);
     morph(img);
     sobel(img);
     dilation(img);
+    cv::Mat channel[3];
+    cv::Mat redfilter = original;
+    cv::split(original, channel);
+    channel[0] = cv::Mat(original.size(), 0);
+    channel[1] = cv::Mat(original.size(), 0);
+    cv::merge(channel, 3, original);
+    Tools::showImage(original, "redfilter");
   }
-
 
   void selectHorizontalPeakProjection(std::vector<std::vector<int> > iXProjectionConvolution,
                                       std::vector<std::pair<int, int> > &iPlates, float iCoefficient)
@@ -502,10 +665,8 @@ namespace algorithm
           lFinalImage.at<uchar>(y, x) = lGrayScaleImage.at<uchar>(y, x);
         }
       }
-
       img = lFinalImage;
       std::cout << "Potential plate found!" << std::endl;
-
     }
   }
 
@@ -513,25 +674,24 @@ namespace algorithm
   void swt(cv::Mat &img)
   {
     // stroke width transform
-    // bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
-    // cv::Mat bw32f, swt32f, kernel;
-    // double  max;
-    // int strokeRadius;
-    // cv::threshold(img, img, 97, 1, 0);
-    // img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
-    // distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
-    // minMaxLoc(swt32f, NULL, &max);  // find max
-    // strokeRadius = (int)ceil(max);  // half the max stroke width
-    // kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
+    //bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
+    cv::Mat bw32f, swt32f, kernel;
+    double  max;
+    int strokeRadius;
+    cv::threshold(img, img, 97, 1, 0);
+    img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
+    distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
+    minMaxLoc(swt32f, NULL, &max);  // find max
+    strokeRadius = (int)ceil(max);  // half the max stroke width
+    kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
 
-    // for (int j = 0; j < strokeRadius; j++)
-    // {
-    //   dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
-    //   swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
-    // }
-    // // swt32f : resulting SWT image
-    // img = swt32f;
-    backupdetect(img);
+    for (int j = 0; j < strokeRadius; j++)
+    {
+      dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
+      swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
+    }
+    // swt32f : resulting SWT image
+    img = swt32f;
   }
 
 }

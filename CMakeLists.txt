@@ -6,7 +6,7 @@ project(lpr)
 set(CMAKE_CXX_FLAGS "-g -ggdb3 -Wall -Wextra -std=c++0x")
 
 SET (CMAKE_CXX_COMPILER   "/usr/bin/clang++")
-
+SET(QT_USE_QTSQL TRUE)
 macro (add_headers)
     file (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_hds ${ARGN})
@@ -48,7 +48,6 @@ find_package(TESSERACT)
 find_package(OpenCV REQUIRED)
 find_package(Qt4 REQUIRED)
 
-
 if(NOT TESSERACT_FOUND)
         MESSAGE (STATUS "TESSERACT LIB not found. Project will not be built.")
 else(NOT TESSERACT_FOUND)
@@ -79,17 +78,21 @@ QT4_WRAP_UI(lpr_FORMS_HEADERS ${lpr_FORMS})
 
 INCLUDE(${QT_USE_FILE})
 ADD_DEFINITIONS(${QT_DEFINITIONS})
+
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIBRARY_DIRS})
 
 include_directories(${TESSERACT_INCLUDE_DIRS})
 link_directories(${TESSERACT_LIBRARY_DIRS})
 
+
+
 add_executable(
 	lpr ${SRCS} ${HDS} ${lpr_FORMS_HEADERS} ${lpr_ghm}
 )
 target_link_libraries(lpr ${TESSERACT_LIBRARIES})
 target_link_libraries(lpr ${OpenCV_LIBRARIES})
-TARGET_LINK_LIBRARIES(lpr ${QT_LIBRARIES})
+target_link_libraries(lpr ${QT_LIBRARIES})
 
-message(STATUS "${SRCS}")
+
+ message(STATUS "${SRCS}")

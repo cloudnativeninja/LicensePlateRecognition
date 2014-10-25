@@ -2,7 +2,7 @@
 #define TOOLS_H_
 
 #include "../main/all.h"
-
+#include <QImage>
 
 class Tools
 {
@@ -28,6 +28,7 @@ class Tools
   public:
     static void linearizeVector(std::vector<int> iProjection, std::vector<int> &iResult, int iWidth);
     static void insertionSort(int iWindow[]);
+    static QImage Mat2QImage(cv::Mat const& src);
 
 
 

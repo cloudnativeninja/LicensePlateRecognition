@@ -25,7 +25,6 @@ namespace algorithm
   void grayscale(cv::Mat &img)
   {
     cv::cvtColor(img, img, CV_RGB2GRAY);
-
   }
 
   // Morphological Transforms
@@ -246,9 +245,10 @@ namespace algorithm
         if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3)
         {
           // Detect rectangle or square
-          cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255) );
-          cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
         }
+	cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255) );
+	cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
+
       }
     } // end of for() loop
     /*
@@ -431,7 +431,6 @@ namespace algorithm
   {
     int lBestROIIndex = -1;
     float lBestRatio = 9000;
-    std::cout << iBands.size() << std::endl;
     for (unsigned int i = 0; i < iBands.size(); ++i)
     {
       std::pair<int, int> lBand = iBands[i];
@@ -507,17 +506,56 @@ namespace algorithm
     img = v_cut;
   }
 
+  std::string chinese_char_get(cv::Mat& img)
+  {
+    int width = img.cols / 6.41;
+    cv::Rect chinese_roi(0, 0, width, img.rows);
+    cv::Mat chinese_char(img, chinese_roi);
+    cv::Mat lInvertImage(chinese_char.size(), 0);
+    tesseract::TessBaseAPI lTessBaseAPI;
+
+    setlocale(LC_NUMERIC, "C");
+
+    cv::bitwise_not(chinese_char, lInvertImage);
+    lTessBaseAPI.Init(NULL, "chi_sim", tesseract::OEM_DEFAULT);
+    lTessBaseAPI.SetVariable("tessedit_char_whitelist", "宁川藏青粤贵闽吉陕蒙晋甘桂鄂赣浙苏新鲁皖湘黑辽云豫冀渝津京");
+    lTessBaseAPI.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
+    lTessBaseAPI.SetImage((uchar*)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
+
+    return lTessBaseAPI.GetUTF8Text();
+  }
+
+  std::string alphanum_char_get(cv::Mat& img)
+  {
+    int width = img.cols / 6.41;
+    cv::Rect roi(width, 0, img.cols - width, img.rows);
+    cv::Mat alphanums(img, roi);
+    cv::Mat lInvertImage(alphanums.size(), 0);
+    tesseract::TessBaseAPI lTessBaseAPI;
+
+    setlocale(LC_NUMERIC, "C");
+
+    blurgaussian(alphanums);
+    cv::bitwise_not(alphanums, lInvertImage);
+    lTessBaseAPI.Init(NULL, "eng", tesseract::OEM_DEFAULT);
+    lTessBaseAPI.SetVariable("tessedit_char_whitelist", "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    lTessBaseAPI.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
+    lTessBaseAPI.SetImage((uchar*)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
+
+    return lTessBaseAPI.GetUTF8Text();
+  }
+
+
   void character_segmentation(cv::Mat& img)
   {
-    Tools::showImage(img);
     cv::Mat one;
     cv::threshold(img, one, 128, 1, 0);
     std::vector<int> h_proj = Tools::horizontalProjection(one);
     int change = !h_proj[0] ? 0 : 1;
     int left = 0;
     size_t i = 0;
-    int cw2 = img.cols / 6.41;
-    std::cout << "div 12 = " << img.cols / 12.0 << std::endl;
+    int min_width = img.cols / 10.0;
+
     std::vector<cv::Mat> characters;
 
     for (; i < h_proj.size(); ++i)
@@ -530,7 +568,6 @@ namespace algorithm
       if (change && !h_proj[i])
       {
 	float diff = i - left;
-	std::cout << "left: " << left << ", width: " << i - left << ", height: " << img.rows << std::endl;
 	cv::Rect char_rect(left, 0, i - left, img.rows);
 	characters.push_back(cv::Mat(img, char_rect));
 	change = 0;
@@ -539,23 +576,20 @@ namespace algorithm
 
     cv::Rect char_rect(left, 0, i - left, img.rows);
     characters.push_back(cv::Mat(img, char_rect));
-    cv::Rect chinese_roi(0, 0, cw2, img.rows);
-    cv::Mat chinese_char(img, chinese_roi);
-    Tools::showImage(chinese_char);
+    std::string test = "";
+    /*    for (int i = characters.size() - 1, j = 0; j < 6; i--)
+    {
+      std::cout << characters[i].cols << " " << min_width << std::endl;
+      if (characters[i].cols >= min_width)
+      {
+	std::cout << alphanum_char_get(characters[i]);
+	Tools::showImage(characters[i]);
+	j++;
+      }
+      }*/
+    std::string plate_text = chinese_char_get(img) + alphanum_char_get(img);
+    std::cout << plate_text << std::endl;
 
-    setlocale(LC_NUMERIC, "C");
-    cv::Mat lInvertImage(img.size(), 0);
-    blurgaussian(img);
-    cv::bitwise_not(img, lInvertImage);
-    tesseract::TessBaseAPI lTessBaseAPI;
-    lTessBaseAPI.Init(NULL, "chi_tra", tesseract::OEM_DEFAULT);
-    lTessBaseAPI.SetVariable("tessedit_char_whitelist", "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    lTessBaseAPI.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
-    lTessBaseAPI.SetImage((uchar*)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
-
-    char* lText = lTessBaseAPI.GetUTF8Text();
-    std::cout << strlen(lText);
-    cv::bitwise_not(img, img);
   }
 
   void detect(cv::Mat &img)
@@ -596,22 +630,8 @@ namespace algorithm
     {
       std::pair<int, int> lBand = lBands[lIndexGoodPlate];
       std::pair<int, int> lPlate = lPlates[lIndexGoodPlate];
-
-      cv::Mat lFinalImage(lGrayScaleImage.size(), 0.0);
-
-      for (int y = 0; y < lGrayScaleImage.rows; y++)
-      {
-        for (int x = 0; x < lGrayScaleImage.cols; x++)
-          lFinalImage.at<uchar>(y, x) = 0.0;
-      }
-
-      for (int y = lBand.first; y <= lBand.second; ++y)
-      {
-        for (int x = lPlate.first; x <= lPlate.second; ++x)
-        {
-          lFinalImage.at<uchar>(y, x) = lGrayScaleImage.at<uchar>(y, x);
-        }
-      }
+      cv::Rect roi(lPlate.first, lBand.first, lPlate.second - lPlate.first, lBand.second - lBand.first);
+      cv::Mat lFinalImage(img, roi);
 
       img = lFinalImage;
       reduce_noize(img);

@@ -7,23 +7,25 @@
 
 namespace algorithm
 {
-  void blurgaussian(cv::Mat &img);
-  void grayscale(cv::Mat &img);
-  void sobel(cv::Mat &img);
-  void otsu(cv::Mat &img);
-  void removeSmallBlobs(cv::Mat &img);
-  void median(cv::Mat &img);
-  void morph(cv::Mat &img);
-  void equalize(cv::Mat &img);
+  int blurgaussian(cv::Mat &img);
+  int grayscale(cv::Mat &img);
+  int sobel(cv::Mat &img);
+  int otsu(cv::Mat &img);
+  int removeSmallBlobs(cv::Mat &img);
+  int median(cv::Mat &img);
+  int morph(cv::Mat &img);
+  int equalize(cv::Mat &img);
   std::vector < std::vector<std::pair<int, int>>>
   location(cv::Mat &img);
-  void roberts(cv::Mat &img);
-  void swt(cv::Mat &img);
-  void fillzone(cv::Mat &img, std::vector < std::vector<std::pair<int, int>>> regions);
-  void erosion(cv::Mat &src);
-  void dilation(cv::Mat &img);
-  void morph2(cv::Mat &img, int oprtor);
-  void open(cv::Mat &img);
+  int roberts(cv::Mat &img);
+  int detect(cv::Mat &img);
+  int reduce_noize(cv::Mat &img);
+  std::string character_segmentation(cv::Mat &img);
+  int fillzone(cv::Mat &img, std::vector < std::vector<std::pair<int, int>>> regions);
+  int erosion(cv::Mat &src);
+  int dilation(cv::Mat &img);
+  int morph2(cv::Mat &img, int oprtor);
+  int open(cv::Mat &img);
   std::vector < std::pair<int, int>> sumvertical(cv::Mat &img);
 }
 

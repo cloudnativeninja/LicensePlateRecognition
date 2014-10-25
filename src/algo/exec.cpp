@@ -13,8 +13,8 @@ namespace algorithm
     { "sobel", sobel },
     { "ostu", otsu },
     { "swt", swt },
-    {"median", median },
-    {"morph", morph },
+    { "median", median },
+    { "morph", morph },
     { "edge_detect", edge_detect}
   };
 

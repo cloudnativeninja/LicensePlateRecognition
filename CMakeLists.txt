@@ -3,7 +3,7 @@ project(lpr)
 
 #include_directories("${PROJECT_SOURCE_DIR}")
 
-set(CMAKE_CXX_FLAGS "-g -ggdb3 -Wall -Wextra -Werror -std=c++0x")
+set(CMAKE_CXX_FLAGS "-g -ggdb3 -Wall -Wextra -std=c++0x")
 
 SET (CMAKE_CXX_COMPILER   "/usr/bin/clang++")
 

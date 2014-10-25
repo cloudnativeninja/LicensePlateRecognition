@@ -10,7 +10,7 @@
 #include <opencv2/core/types_c.h>
 #include <iostream>
 #include <vector>
-
+#include <baseapi.h>
 #include "../tools/Tools.h"
 #include "line.hh"
 #include "../filter/Filter.hh"
@@ -280,14 +280,125 @@ namespace algorithm
       std::pair<int,int> lBand = iBands[i];
       std::pair<int,int> lPlate = iPlates[i];
       float lRatio = (float)(lPlate.second - lPlate.first) / (float)(lBand.second - lBand.first);
-      if (std::abs(lRatio - 4.72) <= lBestRatio) {
-	lBestRatio = std::abs(lRatio - 4.72);
+      if (std::abs(lRatio - 3.14) <= lBestRatio) {
+	lBestRatio = std::abs(lRatio - 3.14);
 	lBestROIIndex = i;
       }
     }
     if (lBestRatio < 11)
       return lBestROIIndex;
     return -1;
+  }
+
+  template <typename U>
+  std::ostream& operator<<(std::ostream& o, const std::vector<U>& v)
+  {
+    for (const U& elt : v)
+      o << elt << std::endl;
+    return o;
+  }
+
+  void reduce_noize(cv::Mat& img)
+  {
+    cv::Mat one;
+    cv::threshold(img, one, 128, 1, 0);
+
+    std::vector<int> v_proj = Tools::verticalProjection(one);
+    std::vector<int> h_proj;
+    int limit = 0;
+    int upper_limit = -1;
+    int lower_limit = -1;
+    int left = -1;
+    int right = -1;
+
+    for (size_t i = 0; i < v_proj.size(); ++i)
+    {
+      if (v_proj[i] <= 14 && upper_limit == -1)
+	limit = 1;
+      if (v_proj[i] > 14 && limit)
+      {
+	upper_limit = i - 1 ? i - 1 : 0;
+	limit = 0;
+      }
+      if (v_proj[i] <= 14 && upper_limit != -1)
+	lower_limit = i;
+      if (v_proj[i] <= 14)
+	for (int j = 0; j < img.cols; ++j)
+	  img.at<uchar>(i, j) = 0;
+    }
+
+    if (upper_limit == -1)
+      upper_limit = 0;
+    if (lower_limit == -1)
+      lower_limit = img.rows;
+
+    cv::Rect h_roi(0, upper_limit, img.cols, lower_limit - upper_limit);
+    cv::Mat h_cut(img, h_roi);
+    h_proj = Tools::horizontalProjection(one);
+    for (size_t i = 0, j = h_proj.size() - 1; i < h_proj.size(); ++i, --j)
+    {
+      if (h_proj[i] != 0 && left == -1)
+	left = i - 1 ? i - 1 : 0;
+      if (h_proj[j] != 0 && right == -1)
+	right = j + 1 < h_proj.size() ? j + 1 : h_proj.size() - 1;
+      if (right != -1 && left != -1)
+	break;
+    }
+
+    cv::Rect v_roi(left, 0, right - left, h_cut.rows);
+    cv::Mat v_cut(h_cut, v_roi);
+    img = v_cut;
+  }
+
+  void character_segmentation(cv::Mat& img)
+  {
+    Tools::showImage(img);
+    cv::Mat one;
+    cv::threshold(img, one, 128, 1, 0);
+    std::vector<int> h_proj = Tools::horizontalProjection(one);
+    int change = !h_proj[0] ? 0 : 1;
+    int left = 0;
+    size_t i = 0;
+    int cw2 = img.cols / 6.41;
+    std::cout << "div 12 = " << img.cols / 12.0 << std::endl;
+    std::vector<cv::Mat> characters;
+
+    for (; i < h_proj.size(); ++i)
+    {
+      if (!change && h_proj[i])
+      {
+	change = 1;
+	left = i;
+      }
+      if (change && !h_proj[i])
+      {
+	float diff = i - left;
+	std::cout << "left: " << left << ", width: " << i - left << ", height: " << img.rows << std::endl;
+	cv::Rect char_rect(left, 0, i - left, img.rows);
+	characters.push_back(cv::Mat(img, char_rect));
+	change = 0;
+      }
+    }
+
+    cv::Rect char_rect(left, 0, i - left, img.rows);
+    characters.push_back(cv::Mat(img, char_rect));
+    cv::Rect chinese_roi(0, 0, cw2, img.rows);
+    cv::Mat chinese_char(img, chinese_roi);
+    Tools::showImage(chinese_char);
+
+    setlocale(LC_NUMERIC, "C");
+    cv::Mat lInvertImage(img.size(), 0);
+    blurgaussian(img);
+    cv::bitwise_not(img, lInvertImage);
+    tesseract::TessBaseAPI lTessBaseAPI;
+    lTessBaseAPI.Init(NULL, "chi_tra", tesseract::OEM_DEFAULT);
+    lTessBaseAPI.SetVariable("tessedit_char_whitelist", "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    lTessBaseAPI.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
+    lTessBaseAPI.SetImage((uchar*)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
+
+    char* lText = lTessBaseAPI.GetUTF8Text();
+    std::cout << strlen(lText);
+    cv::bitwise_not(img, img);
   }
 
   void detect(cv::Mat &img)
@@ -329,25 +440,33 @@ namespace algorithm
       std::pair<int, int> lBand = lBands[lIndexGoodPlate];
       std::pair<int, int> lPlate = lPlates[lIndexGoodPlate];
 
-      cv::Mat lFinalImage(lGrayScaleImage.size(), 0.0);
+      cv::Rect roi(lPlate.first, lBand.first, lPlate.second - lPlate.first, lBand.second - lBand.first);
+      cv::Mat lFinalImage(img, roi);
 
-      for (int y = 0; y < lGrayScaleImage.rows; y++) {
-	for (int x = 0; x < lGrayScaleImage.cols; x++)
-	  lFinalImage.at<uchar>(y, x) = 0.0;
-      }
-
-      for (int y = lBand.first; y <= lBand.second; ++y) {
-	for (int x = lPlate.first; x <= lPlate.second; ++x) {
-	  lFinalImage.at<uchar>(y, x) = lGrayScaleImage.at<uchar>(y, x);
-	}
-      }
 
       img = lFinalImage;
+      reduce_noize(img);
+      character_segmentation(img);
+
       std::cout << "Potential plate found!" << std::endl;
 
     }
   }
 
+  void test_blue(cv::Mat& img)
+  {
+    // for (int i = 0; i < img.rows; ++i)
+    //   for (int j = 0; j < img.cols; ++j)
+    //   {
+    // 	cv::Vec3b rgb = img.at<cv::Vec3b>(i, j);
+    // 	if (!(rgb[0] > 90 && rgb[1] > 90 && rgb[2] < 80))
+    // 	  img.at<cv::Vec3b>(i, j) = cv::Vec3b(0,0,0);
+    //   }
+    cv::Scalar hsv_l(110,60,60);
+    cv::Scalar hsv_h(130,255,255);
+    cv::cvtColor(img,img,CV_BGR2HSV);
+    cv::inRange(img,hsv_l,hsv_h,img);
+  }
 
   void swt(cv::Mat &img)
   {
@@ -370,7 +489,9 @@ namespace algorithm
     // }
     // // swt32f : resulting SWT image
     // img = swt32f;
+    //    detect(img);
     detect(img);
+    //    detect(img);
   }
 
   static double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
@@ -382,7 +503,7 @@ namespace algorithm
     return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
   }
 
-  void edge_detect(cv::Mat &img)
+  void edge_detect(cv::Mat& img)
   {
     cv::RNG rng(12345);
 
@@ -407,7 +528,7 @@ namespace algorithm
         true
       );
       /*      cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-      cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
+       cv::drawContours( dst, contours, i, color, 2, 8, CV_RETR_EXTERNAL, 0, cv::Point() );
       */
       // Skip small or non-convex objects
       if (approx.size() == 4)

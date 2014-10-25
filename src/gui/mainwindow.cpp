@@ -130,12 +130,12 @@ void MainWindow::on_actionLoad_Database_triggered()
     else   std::cout << "Loading image " << q2c(currentFileName) << " to database of host " <<
                        q2c(db.hostName()) << std::endl;
 
-
+    query.next();
     int iid = query.value(0).toInt();
     currentFileName = query.value(1).toString();
     QByteArray array = QByteArray::fromBase64(query.value(2).toByteArray());
     // Creating a QPixmap from QByteArray :
-
+    std::cout << query.isSelect() << std::endl;
     QPixmap pixmap = QPixmap();
     pixmap.loadFromData(array);
     ui->image_label->setPixmap(pixmap);

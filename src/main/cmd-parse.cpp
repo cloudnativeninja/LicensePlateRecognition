@@ -15,6 +15,7 @@ namespace parse
     static struct option long_options[] =
     {
       {"sobel",     no_argument, 0, 's' },
+      {"segment",     no_argument, 0, 'x' },
       {"grayscale", no_argument, 0, 'g' },
       {"blur",  no_argument, 0, 'b' },
       {"otsu",  no_argument, 0, 'o' },
@@ -25,6 +26,7 @@ namespace parse
       {"hist",  no_argument, 0, 'i' },
       {"loc",  no_argument, 0, 'l' },
       {"robert",  no_argument, 0, 'r' },
+      {"gui",  no_argument, 0, 'u' },
       {0,         0,                 0,  0 }
     };
     int c;
@@ -34,7 +36,7 @@ namespace parse
     {
       int option_index = 0;
 
-      c = getopt_long(ac, av, "sgbotempilr",
+      c = getopt_long(ac, av, "sgbotempilrxu",
                       long_options, &option_index);
       if (c == -1)
         break;
@@ -46,6 +48,15 @@ namespace parse
           if (optarg)
             printf(" with arg %s", optarg);
           printf("\n");
+          break;
+
+        case 'x':
+          opts["algorithms"].push_back("segment");
+          break;
+
+        case 'u':
+	  opts["gui"] = std::list<std::string>();
+          opts["gui"].push_back("ON");
           break;
 
         case 's':
@@ -98,7 +109,7 @@ namespace parse
       }
     }
 
-    if (optind < ac)
+    if (optind < ac || opts["gui"].size())
     {
       opts["img"] = std::list<std::string>();
       while (optind < ac)

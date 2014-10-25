@@ -25,6 +25,6 @@ void MainWindow::on_action_Open_triggered()
     if (!fileName.isEmpty()) {
         cv::Mat img = cv::imread(fileName.toUtf8().constData(), CV_LOAD_IMAGE_UNCHANGED);
 
-        ui->imageLabel->setPixmap(QPixmap::fromImage(Tools::Mat2QImage(img)));
+        ui->image_label->setPixmap(QPixmap::fromImage(Tools::Mat2QImage(img)));
     }
 }

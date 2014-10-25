@@ -7,7 +7,7 @@
 #include <QtSql>
 
 #define q2c(string) string.toStdString()
-#define q2b(string) string.toString()
+#define q2b(string) string.toUtf8().constData()
 
 #include "../algo/algorithm.hh"
 
@@ -29,6 +29,8 @@ void MainWindow::on_action_Open_triggered()
   QString fileName = QFileDialog::getOpenFileName(this,
                      tr("Open File"), QDir::currentPath());
 
+  currentFileName = fileName;
+
   if (!fileName.isEmpty())
   {
     car_img = cv::imread(fileName.toUtf8().constData(), CV_LOAD_IMAGE_UNCHANGED);
@@ -47,33 +49,35 @@ void MainWindow::on_actionSave_triggered()
 {
   QSqlDatabase db;
   db = QSqlDatabase::addDatabase("QSQLITE");
-  db.setHostName("localhost");
-  db.setUserName("root");
-  db.setPassword("");
-  db.setDatabaseName("images");
-
+  QString dbPath = QCoreApplication::applicationDirPath() + "/../db/images.db";
+  std::cout << q2c(dbPath) << std::endl;
+  db.setDatabaseName(dbPath);
   if (db.open())
   {
-    std::cout << "Vous êtes maintenant connecté à " << q2c(db.hostName()) << std::endl;
-
+    std::cout << "You are now connected to " << q2c(db.hostName()) << " database " << std::endl;
+    id++;
+    QFile file(currentFileName);
+    if (!file.open(QIODevice::ReadOnly)) return;
+    QByteArray byteArray = file.readAll();
 
     QSqlQuery query;
-    if (query.exec("SELECT * FROM image"))
-    {
-      while (query.next())
-      {
-        std::cout << "    Nouvelle entrée" << std::endl;
-        for (int x = 0; x < query.record().count(); ++x)
-        {
-          // std::cout << "        " << q2c(query.record().fieldName(x)) << " = " << query.value(x) << std::endl;
-        }
-      }
-    }
+    QString id_string = id == -1 ? "NULL" : QString::number (id);
+    query.prepare("REPLACE INTO imagetable (id, imagepath, imagedata) VALUES (:id, :imagepath, :imagedata)");
+    query.bindValue (":id", id_string);
+    query.bindValue (":imagepath", currentFileName);
+    query.bindValue (":imagedata", QString (byteArray.toBase64()));
+    if (!query.exec())
+      std::cout << "Fail to add image " << q2c(currentFileName) << " to database of host " << q2c(db.hostName()) << std::endl;
+    else
+      std::cout << "Adding image " << q2c(currentFileName) << " to database of host " << q2c(db.hostName()) << std::endl;
+
+
+
     db.close();
   }
   else
   {
-    std::cout << "La connexion a échouée, désolé" << std::endl << q2c(db.lastError().text()) << std::endl;;
+    std::cout << "Connexion failed, sorry. " << std::endl << q2c(db.lastError().text()) << std::endl;;
   }
 
 }
@@ -101,4 +105,42 @@ void MainWindow::on_detect_button_clicked()
     return;
   }
   ui->plate_number_txt->setText(QString::fromUtf8(plate_no.c_str()));
+}
+
+void MainWindow::on_actionLoad_Database_triggered()
+{
+  QSqlDatabase db;
+  db = QSqlDatabase::addDatabase("QSQLITE");
+  QString dbPath = QCoreApplication::applicationDirPath() + "/../db/images.db";
+  std::cout << q2c(dbPath) << std::endl;
+  db.setDatabaseName(dbPath);
+  if (db.open())
+  {
+    std::cout << "You are now connected to " << q2c(db.hostName()) << " database " << std::endl;
+
+    QSqlQuery query;
+    QString id_string = id == -1 ? "NULL" : QString::number (id);
+
+    query.prepare("SELECT id, imagepath, imagedata FROM imagetable WHERE id=1;");
+    if (!query.exec())
+    {
+      qDebug() << query.lastError();
+      std::cout << " Fail to load image " << q2c(currentFileName) << " to database of host " << q2c(db.hostName()) << std::endl;
+    }
+    else   std::cout << "Loading image " << q2c(currentFileName) << " to database of host " <<
+                       q2c(db.hostName()) << std::endl;
+
+
+    int iid = query.value(0).toInt();
+    currentFileName = query.value(1).toString();
+    QByteArray array = QByteArray::fromBase64(query.value(2).toByteArray());
+    // Creating a QPixmap from QByteArray :
+
+    QPixmap pixmap = QPixmap();
+    pixmap.loadFromData(array);
+    ui->image_label->setPixmap(pixmap);
+
+  }
+
+
 }

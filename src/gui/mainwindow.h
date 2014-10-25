@@ -23,10 +23,14 @@ class MainWindow : public QMainWindow
     void on_actionSave_triggered();
     void on_detect_button_clicked();
 
-  private:
+    void on_actionLoad_Database_triggered();
+
+private:
     cv::Mat car_img;
     Ui::MainWindow *ui;
     int img_treated;
+    QString currentFileName;
+    int id = 0;
 };
 
 #endif // MAINWINDOW_H

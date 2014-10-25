@@ -19,7 +19,7 @@ namespace parse
       {"blur",  no_argument, 0, 'b' },
       {"otsu",  no_argument, 0, 'o' },
       {"edged",  no_argument, 0, 'e' },
-      {"swt",  no_argument, 0, 't' },
+      {"detect",  no_argument, 0, 't' },
       {"median",  no_argument, 0, 'm' },
       {"morph",  no_argument, 0, 'p' },
       {"hist",  no_argument, 0, 'i' },
@@ -57,7 +57,7 @@ namespace parse
           break;
 
         case 't':
-          opts["algorithms"].push_back("swt");
+          opts["algorithms"].push_back("detect");
           break;
 
         case 'o':

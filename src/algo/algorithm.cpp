@@ -17,28 +17,32 @@
 
 namespace algorithm
 {
-  void blurgaussian(cv::Mat &img)
+  int blurgaussian(cv::Mat &img)
   {
     cv::GaussianBlur(img, img, cv::Size(3, 3), 0, 0, cv::BORDER_DEFAULT);
+    return 0;
   }
 
-  void grayscale(cv::Mat &img)
+  int grayscale(cv::Mat &img)
   {
     cv::cvtColor(img, img, CV_BGR2GRAY);
+    return 0;
   }
 
-  void equalize(cv::Mat &img)
+  int equalize(cv::Mat &img)
   {
     cv::equalizeHist(img, img);
+    return 0;
   }
 
-  void morph(cv::Mat &img)
+  int morph(cv::Mat &img)
   {
     img = img;
+    return 0;
   }
 
 
-  void open(cv::Mat &img)
+  int open(cv::Mat &img)
   {
     int morph_elem = 0; //Element:\n 0: Rect - 1: Cross - 2: Ellipse
     int morph_size = 3; // Kernel size:\n 2n +1 (max 21)
@@ -51,11 +55,12 @@ namespace algorithm
     // cv::Mat element = (cv::Mat_<uchar>(1, 2) << 25, 25);
 
     cv::morphologyEx(img, img, operation, element);
+    return 0;
   }
 
 
   // Morphological Transforms
-  void morph2(cv::Mat &img, int oprtor)
+  int morph2(cv::Mat &img, int oprtor)
   {
     // int morph_elem = 0; //Element:\n 0: Rect - 1: Cross - 2: Ellipse
     // int morph_size = 3; // Kernel size:\n 2n +1 (max 21)
@@ -68,24 +73,27 @@ namespace algorithm
     cv::Mat element = (cv::Mat_<uchar>(1, 2) << 25, 25);
 
     cv::morphologyEx(img, img, operation, element);
+    return 0;
   }
 
 
-  void otsu(cv::Mat &img)
+  int otsu(cv::Mat &img)
   {
     // cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
     // cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 11, 2);
     // cv::adaptiveThreshold(img, img, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 11, 2);
 
     cv::threshold(img, img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    return 0;
   }
 
-  void median(cv::Mat &img)
+  int median(cv::Mat &img)
   {
     cv::medianBlur(img, img, 3);
+    return 0;
   }
 
-  void sobel(cv::Mat &img)
+  int sobel(cv::Mat &img)
   {
     cv::Mat grad_x, grad_y;
     cv::Mat abs_grad_x, abs_grad_y;
@@ -101,15 +109,17 @@ namespace algorithm
     cv::convertScaleAbs(grad_y, abs_grad_y);
 
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, img);
+    return 0;
   }
 
-  void preProcessingPlate(const cv::Mat src, cv::Mat &dst)
+  int preProcessingPlate(const cv::Mat src, cv::Mat &dst)
   {
     cv::Mat med = src;
     median(med);
     sobel(med);
     otsu(med);
     dst = med;
+    return 0;
   }
 
 
@@ -188,7 +198,7 @@ namespace algorithm
   }
 
 
-  void
+  int
   selectBySegmentation(cv::Mat iImage, std::vector<std::pair<int, int>> &iBands, std::vector<std::pair<int, int>> &iPlates)
   {
     std::vector<std::pair<int, int>> lGoodBands;
@@ -216,6 +226,7 @@ namespace algorithm
     }
     iBands = lGoodBands;
     iPlates = lGoodPlates;
+    return 0;
   }
 
 
@@ -229,7 +240,7 @@ namespace algorithm
   }
 
   /**  @function Erosion  */
-  void erosion(cv::Mat &src)
+  int erosion(cv::Mat &src)
   {
     int erosion_type = cv::MORPH_RECT;
     int erosion_elem = 0; // Element:\n 0: Rect \n 1: Cross \n 2: Ellipse
@@ -257,11 +268,12 @@ namespace algorithm
     cv::Mat dst(src.size(), 0);
     cv::erode( src, dst, element );
     src = dst;
+    return 0;
   }
 
 
   /** @function Dilation */
-  void dilation(cv::Mat &img)
+  int dilation(cv::Mat &img)
   {
     int dilation_elem = 0; //Element: \n 0: Rect \n 1: Cross \n 2: Ellipse
     int dilation_size = 3; //Kernel size: \n 2n + 1
@@ -288,6 +300,7 @@ namespace algorithm
     cv::Mat dst;
     cv::dilate(img, dst, element );
     img = dst;
+    return 0;
   }
 
   /**
@@ -295,11 +308,11 @@ namespace algorithm
    * Input image must be 8 bits, 1 channel, black and white (objects)
    * with values 0 and 255 respectively
    */
-  void removeSmallBlobs(cv::Mat &im, double size)
+  int removeSmallBlobs(cv::Mat &im, double size)
   {
     // Only accept CV_8UC1
     if (im.channels() != 1 || im.type() != CV_8U)
-      return;
+      return 1;
 
     // Find all contours
     std::vector<std::vector<cv::Point> > contours;
@@ -314,6 +327,7 @@ namespace algorithm
       if (area > 0 && area <= size)
         cv::drawContours(im, contours, i, CV_RGB(0, 0, 0), -1);
     }
+    return 0;
   }
 
   bool  sup14(int jumps)
@@ -332,16 +346,17 @@ namespace algorithm
 
 
 
-  void roberts(cv::Mat &img)
+  int roberts(cv::Mat &img)
   {
     // hx = [+1 0; 0 - 1]; hy = [0 + 1; -1 0];
     // Gx = imfilter(img, hx, 'conv', 'same', 'replicate');
     // Gy = imfilter(img, hy, 'conv', 'same', 'replicate');
     // G = sqrt(Gx. ^ 2 + Gy. ^ 2);
     img = img;
+    return 0;
   }
 
-  void fillzone(cv::Mat &img, std::vector < std::vector<std::pair<int, int>>> regions)
+  int fillzone(cv::Mat &img, std::vector < std::vector<std::pair<int, int>>> regions)
   {
     cv::Mat zone(img.size(), 0);
     cv::Mat a(img.size(), 0);
@@ -361,6 +376,7 @@ namespace algorithm
         break;
     }
     img = zone;
+    return 0;
   }
 
   std::vector < std::pair<int, int>> sumvertical(cv::Mat &img)
@@ -462,12 +478,12 @@ namespace algorithm
 
   }
 
-  void removeSmallBlobs(cv::Mat &img)
+  int removeSmallBlobs(cv::Mat &img)
   {
-    removeSmallBlobs(img, 21.);
+    return removeSmallBlobs(img, 21.);
   }
 
-  void algochinoi2(cv::Mat &img)
+  int algochinoi2(cv::Mat &img)
   {
     cv::Mat original = img;
     grayscale(img);
@@ -484,9 +500,10 @@ namespace algorithm
     channel[1] = cv::Mat(original.size(), 0);
     cv::merge(channel, 3, original);
     Tools::showImage(original, "redfilter");
+    return 0;
   }
 
-  void selectHorizontalPeakProjection(std::vector<std::vector<int> > iXProjectionConvolution,
+  int selectHorizontalPeakProjection(std::vector<std::vector<int> > iXProjectionConvolution,
                                       std::vector<std::pair<int, int> > &iPlates, float iCoefficient)
   {
     for (std::vector<int> lXProjection : iXProjectionConvolution)
@@ -503,9 +520,10 @@ namespace algorithm
 
       iPlates.push_back(std::make_pair(lXB0, lXB1));
     }
+    return 0;
   }
 
-  void selectVerticalPeakProjection(std::vector<int> &iYProjectionConvolution, std::vector<std::pair<int, int> > &iBands, float iCoefficient)
+  int selectVerticalPeakProjection(std::vector<int> &iYProjectionConvolution, std::vector<std::pair<int, int> > &iBands, float iCoefficient)
   {
     std::vector<int> lYProjectionCopy(iYProjectionConvolution);
     int lNbBandsToBeDetected = 3;
@@ -548,6 +566,7 @@ namespace algorithm
 
       lNbBandsToBeDetected--;
     }
+    return 0;
   }
 
   cv::Mat verticalProject(cv::Mat iImage, std::vector<std::pair<int, int> > iBands)
@@ -585,7 +604,6 @@ namespace algorithm
         }
       }
     }
-    // Tools::showImage(lResultImage, "ROIs");
     return lResultImage;
   }
 
@@ -618,11 +636,10 @@ namespace algorithm
     return o;
   }
 
-  void reduce_noize(cv::Mat &img)
+  int reduce_noize(cv::Mat &img)
   {
     cv::Mat one;
     cv::threshold(img, one, 128, 1, 0);
-
     std::vector<int> v_proj = Tools::verticalProjection(one);
     std::vector<int> h_proj;
     int limit = 0;
@@ -668,6 +685,7 @@ namespace algorithm
     cv::Rect v_roi(left, 0, right - left, h_cut.rows);
     cv::Mat v_cut(h_cut, v_roi);
     img = v_cut;
+    return 0;
   }
 
 
@@ -710,10 +728,10 @@ namespace algorithm
     return lTessBaseAPI.GetUTF8Text();
   }
 
-
-  void character_segmentation(cv::Mat& img)
+  std::string character_segmentation(cv::Mat& img)
   {
     cv::Mat one;
+    std::cout << "LA" << std::endl;
     cv::threshold(img, one, 128, 1, 0);
     std::vector<int> h_proj = Tools::horizontalProjection(one);
     int change = !h_proj[0] ? 0 : 1;
@@ -748,15 +766,18 @@ namespace algorithm
       if (characters[i].cols >= min_width)
       {
 	std::cout << alphanum_char_get(characters[i]);
-	Tools::showImage(characters[i]);
 	j++;
       }
       }*/
     std::string plate_text = chinese_char_get(img) + alphanum_char_get(img);
+    for (size_t i = 0; i < plate_text.size(); ++i)
+      if (plate_text[i] == '\n')
+	plate_text[i] = ' ';
     std::cout << plate_text << std::endl;
+    return plate_text;
   }
 
-  void detect(cv::Mat &img)
+  int detect(cv::Mat &img)
   {
     cv::Mat lGrayScaleImage = img;
     cv::Mat lVerticalImage(lGrayScaleImage.size(), 0);
@@ -767,8 +788,8 @@ namespace algorithm
     std::vector<int> lYProjectionConvolution(lYProjection);
     Tools::linearizeVector(lYProjection, lYProjectionConvolution, 4);
     std::vector<std::pair<int, int> > lBands;
-    selectVerticalPeakProjection(lYProjectionConvolution, lBands, 0.55);
 
+    selectVerticalPeakProjection(lYProjectionConvolution, lBands, 0.55);
     cv::Mat lVerticalProjectionImage = verticalProject(lGrayScaleImage, lBands);
     img = lVerticalProjectionImage;
 
@@ -789,7 +810,10 @@ namespace algorithm
     int lIndexGoodPlate = selectByRatio(lBands, lPlates);
 
     if (lIndexGoodPlate == -1)
+    {
       std::cout << "Plate not found..." << std::endl;
+      return 1;
+    }
     else
     {
       std::pair<int, int> lBand = lBands[lIndexGoodPlate];
@@ -798,14 +822,18 @@ namespace algorithm
       cv::Mat lFinalImage(img, roi);
 
       img = lFinalImage;
-      reduce_noize(img);
-      character_segmentation(img);
-
-      std::cout << "Potential plate found!" << std::endl;
+      return 0;
     }
   }
 
-  void test_blue(cv::Mat &img)
+  int read_plate(cv::Mat& img)
+  {
+    reduce_noize(img);
+    std::cout << character_segmentation(img) << std::endl;
+    return 0;
+  }
+
+  int test_blue(cv::Mat &img)
   {
     // for (int i = 0; i < img.rows; ++i)
     //   for (int j = 0; j < img.cols; ++j)
@@ -818,9 +846,10 @@ namespace algorithm
     cv::Scalar hsv_h(130, 255, 255);
     cv::cvtColor(img, img, CV_BGR2HSV);
     cv::inRange(img, hsv_l, hsv_h, img);
+    return 0;
   }
 
-  void swt(cv::Mat &img)
+  int swt(cv::Mat &img)
   {
     // stroke width transform
     // bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
@@ -837,12 +866,13 @@ namespace algorithm
     // for (int j = 0; j < strokeRadius; j++)
     // {
     //   dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
-    //   swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
+    //   swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to aint unnecessary max propogation
     // }
     // // swt32f : resulting SWT image
     // img = swt32f;
     //    detect(img);
     detect(img);
     //    detect(img);
+    return 0;
   }
 }

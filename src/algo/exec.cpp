@@ -6,13 +6,13 @@
 
 namespace algorithm
 {
-  static std::map<std::string, std::function<void(cv::Mat &)>> funcs =
+  static std::map<std::string, std::function<int(cv::Mat &)>> funcs =
   {
     { "blur", blurgaussian },
     { "grayscale", grayscale },
     { "sobel", sobel },
     { "otsu", otsu },
-    { "swt", swt },
+    { "detect", detect },
     { "median", median },
     { "morph", morph },
     { "hist", equalize},

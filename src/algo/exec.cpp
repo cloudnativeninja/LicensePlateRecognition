@@ -17,8 +17,7 @@ namespace algorithm
     { "morph", morph },
     { "hist", equalize},
     { "robert", roberts}
-    // { "loc", location}
-
+    { "edge_detect", edge_detect}
   };
 
   void precise_loc(cv::Mat &originalimage, std::vector < std::vector<std::pair<int, int>>> regions)

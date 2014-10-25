@@ -10,7 +10,7 @@
 #include <opencv2/core/types_c.h>
 #include <iostream>
 #include <vector>
-
+#include <baseapi.h>
 #include "../tools/Tools.h"
 #include "line.hh"
 #include "../filter/Filter.hh"
@@ -600,15 +600,126 @@ namespace algorithm
       std::pair<int, int> lBand = iBands[i];
       std::pair<int, int> lPlate = iPlates[i];
       float lRatio = (float)(lPlate.second - lPlate.first) / (float)(lBand.second - lBand.first);
-      if (std::abs(lRatio - 4.72) <= lBestRatio)
+      if (std::abs(lRatio - 3.14) <= lBestRatio)
       {
-        lBestRatio = std::abs(lRatio - 4.72);
+        lBestRatio = std::abs(lRatio - 3.14);
         lBestROIIndex = i;
       }
     }
     if (lBestRatio < 11)
       return lBestROIIndex;
     return -1;
+  }
+
+  template <typename U>
+  std::ostream &operator<<(std::ostream &o, const std::vector<U> &v)
+  {
+    for (const U &elt : v)
+      o << elt << std::endl;
+    return o;
+  }
+
+  void reduce_noize(cv::Mat &img)
+  {
+    cv::Mat one;
+    cv::threshold(img, one, 128, 1, 0);
+
+    std::vector<int> v_proj = Tools::verticalProjection(one);
+    std::vector<int> h_proj;
+    int limit = 0;
+    int upper_limit = -1;
+    int lower_limit = -1;
+    int left = -1;
+    int right = -1;
+
+    for (size_t i = 0; i < v_proj.size(); ++i)
+    {
+      if (v_proj[i] <= 14 && upper_limit == -1)
+        limit = 1;
+      if (v_proj[i] > 14 && limit)
+      {
+        upper_limit = i - 1 ? i - 1 : 0;
+        limit = 0;
+      }
+      if (v_proj[i] <= 14 && upper_limit != -1)
+        lower_limit = i;
+      if (v_proj[i] <= 14)
+        for (int j = 0; j < img.cols; ++j)
+          img.at<uchar>(i, j) = 0;
+    }
+
+    if (upper_limit == -1)
+      upper_limit = 0;
+    if (lower_limit == -1)
+      lower_limit = img.rows;
+
+    cv::Rect h_roi(0, upper_limit, img.cols, lower_limit - upper_limit);
+    cv::Mat h_cut(img, h_roi);
+    h_proj = Tools::horizontalProjection(one);
+    for (size_t i = 0, j = h_proj.size() - 1; i < h_proj.size(); ++i, --j)
+    {
+      if (h_proj[i] != 0 && left == -1)
+        left = i - 1 ? i - 1 : 0;
+      if (h_proj[j] != 0 && right == -1)
+        right = j + 1 < h_proj.size() ? j + 1 : h_proj.size() - 1;
+      if (right != -1 && left != -1)
+        break;
+    }
+
+    cv::Rect v_roi(left, 0, right - left, h_cut.rows);
+    cv::Mat v_cut(h_cut, v_roi);
+    img = v_cut;
+  }
+
+  void character_segmentation(cv::Mat &img)
+  {
+    Tools::showImage(img);
+    cv::Mat one;
+    cv::threshold(img, one, 128, 1, 0);
+    std::vector<int> h_proj = Tools::horizontalProjection(one);
+    int change = !h_proj[0] ? 0 : 1;
+    int left = 0;
+    size_t i = 0;
+    int cw2 = img.cols / 6.41;
+    std::cout << "div 12 = " << img.cols / 12.0 << std::endl;
+    std::vector<cv::Mat> characters;
+
+    for (; i < h_proj.size(); ++i)
+    {
+      if (!change && h_proj[i])
+      {
+        change = 1;
+        left = i;
+      }
+      if (change && !h_proj[i])
+      {
+        float diff = i - left;
+        std::cout << "left: " << left << ", width: " << i - left << ", height: " << img.rows << std::endl;
+        cv::Rect char_rect(left, 0, i - left, img.rows);
+        characters.push_back(cv::Mat(img, char_rect));
+        change = 0;
+      }
+    }
+
+    cv::Rect char_rect(left, 0, i - left, img.rows);
+    characters.push_back(cv::Mat(img, char_rect));
+    cv::Rect chinese_roi(0, 0, cw2, img.rows);
+    cv::Mat chinese_char(img, chinese_roi);
+    Tools::showImage(chinese_char);
+
+    setlocale(LC_NUMERIC, "C");
+    cv::Mat lInvertImage(img.size(), 0);
+    blurgaussian(img);
+    cv::bitwise_not(img, lInvertImage);
+    tesseract::TessBaseAPI lTessBaseAPI;
+    lTessBaseAPI.Init(NULL, "chi_tra", tesseract::OEM_DEFAULT);
+    lTessBaseAPI.SetVariable("tessedit_char_whitelist", "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    lTessBaseAPI.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
+    lTessBaseAPI.SetImage((uchar *)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
+
+    char *lText = lTessBaseAPI.GetUTF8Text();
+    std::cout << strlen(lText);
+    cv::bitwise_not(img, img);
   }
 
   void detect(cv::Mat &img)
@@ -666,32 +777,51 @@ namespace algorithm
         }
       }
       img = lFinalImage;
+      reduce_noize(img);
+      character_segmentation(img);
+
       std::cout << "Potential plate found!" << std::endl;
     }
   }
 
+  void test_blue(cv::Mat &img)
+  {
+    // for (int i = 0; i < img.rows; ++i)
+    //   for (int j = 0; j < img.cols; ++j)
+    //   {
+    //  cv::Vec3b rgb = img.at<cv::Vec3b>(i, j);
+    //  if (!(rgb[0] > 90 && rgb[1] > 90 && rgb[2] < 80))
+    //    img.at<cv::Vec3b>(i, j) = cv::Vec3b(0,0,0);
+    //   }
+    cv::Scalar hsv_l(110, 60, 60);
+    cv::Scalar hsv_h(130, 255, 255);
+    cv::cvtColor(img, img, CV_BGR2HSV);
+    cv::inRange(img, hsv_l, hsv_h, img);
+  }
 
   void swt(cv::Mat &img)
   {
     // stroke width transform
-    //bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
-    cv::Mat bw32f, swt32f, kernel;
-    double  max;
-    int strokeRadius;
-    cv::threshold(img, img, 97, 1, 0);
-    img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
-    distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
-    minMaxLoc(swt32f, NULL, &max);  // find max
-    strokeRadius = (int)ceil(max);  // half the max stroke width
-    kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
+    // bw8u : we want to calculate the SWT of this. NOTE: Its background pixels are 0 and forground pixels are 1 (not 255!)
+    // cv::Mat bw32f, swt32f, kernel;
+    // double  max;
+    // int strokeRadius;
+    // cv::threshold(img, img, 97, 1, 0);
+    // img.convertTo(bw32f, CV_32F);  // format conversion for multiplication
+    // distanceTransform(img, swt32f, CV_DIST_L2, 5); // distance transform
+    // minMaxLoc(swt32f, NULL, &max);  // find max
+    // strokeRadius = (int)ceil(max);  // half the max stroke width
+    // kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)); // 3x3 kernel used to select 8-connected neighbors
 
-    for (int j = 0; j < strokeRadius; j++)
-    {
-      dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
-      swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
-    }
-    // swt32f : resulting SWT image
-    img = swt32f;
+    // for (int j = 0; j < strokeRadius; j++)
+    // {
+    //   dilate(swt32f, swt32f, kernel); // assign the max in 3x3 neighborhood to each center pixel
+    //   swt32f = swt32f.mul(bw32f); // apply mask to restore original shape and to avoid unnecessary max propogation
+    // }
+    // // swt32f : resulting SWT image
+    // img = swt32f;
+    //    detect(img);
+    detect(img);
+    //    detect(img);
   }
-
 }

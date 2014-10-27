@@ -20,6 +20,7 @@ namespace algorithm
   int roberts(cv::Mat &img);
   int detect(cv::Mat &img);
   int reduce_noize(cv::Mat &img);
+  int read_plate(cv::Mat &img);
   std::string character_segmentation(cv::Mat &img);
   int fillzone(cv::Mat &img, std::vector < std::vector<std::pair<int, int>>> regions);
   int erosion(cv::Mat &src);

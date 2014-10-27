@@ -15,7 +15,8 @@ namespace algorithm
     { "detect", detect },
     { "median", median },
     { "morph", morph },
-    { "hist", equalize},
+    { "hist", equalize },
+    { "segment", read_plate },
     { "robert", roberts}
   };
 

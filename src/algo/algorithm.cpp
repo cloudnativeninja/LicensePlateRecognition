@@ -504,7 +504,7 @@ namespace algorithm
   }
 
   int selectHorizontalPeakProjection(std::vector<std::vector<int> > iXProjectionConvolution,
-                                      std::vector<std::pair<int, int> > &iPlates, float iCoefficient)
+                                     std::vector<std::pair<int, int> > &iPlates, float iCoefficient)
   {
     for (std::vector<int> lXProjection : iXProjectionConvolution)
     {
@@ -689,7 +689,7 @@ namespace algorithm
   }
 
 
-  std::string chinese_char_get(cv::Mat& img)
+  std::string chinese_char_get(cv::Mat &img)
   {
     int width = img.cols / 6.41;
     cv::Rect chinese_roi(0, 0, width, img.rows);
@@ -703,12 +703,12 @@ namespace algorithm
     lTessBaseAPI.Init(NULL, "chi_sim", tesseract::OEM_DEFAULT);
     lTessBaseAPI.SetVariable("tessedit_char_whitelist", "宁川藏青粤贵闽吉陕蒙晋甘桂鄂赣浙苏新鲁皖湘黑辽云豫冀渝津京");
     lTessBaseAPI.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
-    lTessBaseAPI.SetImage((uchar*)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
+    lTessBaseAPI.SetImage((uchar *)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
 
     return lTessBaseAPI.GetUTF8Text();
   }
 
-  std::string alphanum_char_get(cv::Mat& img)
+  std::string alphanum_char_get(cv::Mat &img)
   {
     int width = img.cols / 6.41;
     cv::Rect roi(width, 0, img.cols - width, img.rows);
@@ -723,12 +723,12 @@ namespace algorithm
     lTessBaseAPI.Init(NULL, "eng", tesseract::OEM_DEFAULT);
     lTessBaseAPI.SetVariable("tessedit_char_whitelist", "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     lTessBaseAPI.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
-    lTessBaseAPI.SetImage((uchar*)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
+    lTessBaseAPI.SetImage((uchar *)lInvertImage.data, lInvertImage.cols, lInvertImage.rows, 1, lInvertImage.cols);
 
     return lTessBaseAPI.GetUTF8Text();
   }
 
-  std::string character_segmentation(cv::Mat& img)
+  std::string character_segmentation(cv::Mat &img)
   {
     cv::Mat one;
     std::cout << "LA" << std::endl;
@@ -750,10 +750,10 @@ namespace algorithm
       }
       if (change && !h_proj[i])
       {
-	float diff = i - left;
-	cv::Rect char_rect(left, 0, i - left, img.rows);
-	characters.push_back(cv::Mat(img, char_rect));
-	change = 0;
+        float diff = i - left;
+        cv::Rect char_rect(left, 0, i - left, img.rows);
+        characters.push_back(cv::Mat(img, char_rect));
+        change = 0;
       }
     }
 
@@ -765,14 +765,14 @@ namespace algorithm
       std::cout << characters[i].cols << " " << min_width << std::endl;
       if (characters[i].cols >= min_width)
       {
-	std::cout << alphanum_char_get(characters[i]);
-	j++;
+    std::cout << alphanum_char_get(characters[i]);
+    j++;
       }
       }*/
     std::string plate_text = chinese_char_get(img) + alphanum_char_get(img);
     for (size_t i = 0; i < plate_text.size(); ++i)
       if (plate_text[i] == '\n')
-	plate_text[i] = ' ';
+        plate_text[i] = ' ';
     std::cout << plate_text << std::endl;
     return plate_text;
   }
@@ -826,7 +826,7 @@ namespace algorithm
     }
   }
 
-  int read_plate(cv::Mat& img)
+  int read_plate(cv::Mat &img)
   {
     reduce_noize(img);
     std::cout << character_segmentation(img) << std::endl;

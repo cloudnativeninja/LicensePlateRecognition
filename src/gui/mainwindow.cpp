@@ -121,7 +121,7 @@ void MainWindow::on_actionLoad_Database_triggered()
     QSqlQuery query;
     QString id_string = id == -1 ? "NULL" : QString::number (id);
 
-    query.prepare("SELECT id, imagepath, imagedata FROM imagetable WHERE id=1;");
+    query.prepare("SELECT id, imagepath, imagedata FROM imagetable WHERE id = 1");
     if (!query.exec())
     {
       qDebug() << query.lastError();
@@ -130,15 +130,13 @@ void MainWindow::on_actionLoad_Database_triggered()
     else   std::cout << "Loading image " << q2c(currentFileName) << " to database of host " <<
                        q2c(db.hostName()) << std::endl;
 
-
-    int iid = query.value(0).toInt();
+    // std::cout << "query first : " << query.first();
+    // int iid = query.value(0).toInt();
     currentFileName = query.value(1).toString();
     QByteArray array = QByteArray::fromBase64(query.value(2).toByteArray());
     // Creating a QPixmap from QByteArray :
-
-    QPixmap pixmap = QPixmap();
-    pixmap.loadFromData(array);
-    ui->image_label->setPixmap(pixmap);
+    QImage image = QImage::fromData(array, "PNG");
+    ui->image_label->setPixmap(QPixmap::fromImage(image));
 
   }
 
